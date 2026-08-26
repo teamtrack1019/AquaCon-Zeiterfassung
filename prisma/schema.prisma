@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  username String   @unique
+  password String
+  role     String   @default("WORKER") // "ADMIN" or "WORKER"
+  
+  // İzin ve Tatil Takibi
+  annualLeaveDays      Int @default(30) // Admin belirleyecek
+  carriedOverLeaveDays Int @default(0)  // Geçen yıldan devreden
+  lastCarryOverYear    Int @default(2026) // Hangi yılda devir yapıldı
+  
+  timeEntries   TimeEntry[]
+  leaveRequests LeaveRequest[]
+  createdAt     DateTime @default(now())
+}
+
+model LeaveRequest {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  type        String   // "URLAUB" or "KRANK"
+  startDate   String   // "YYYY-MM-DD"
+  endDate     String   // "YYYY-MM-DD"
+  daysCount   Int      // Hesaplanmış gün (hafta sonu hariç)
+  status      String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  createdAt   DateTime @default(now())
+}
+
+model TimeEntry {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  date        String   // YYYY-MM-DD
+  startTime   String?  // HH:MM
+  endTime     String?  // HH:MM
+  pauseHours  Float    @default(0.5) // Standard 0.5 hours
+  travelHours Float    @default(0.0) // Yol saati
+  totalHours  Float?
+  location    String?  // Calisma yeri
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
