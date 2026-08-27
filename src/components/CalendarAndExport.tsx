@@ -206,9 +206,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
                 <td className="p-3">{entry.pauseHours}</td>
                 <td className="p-3">{entry.travelHours}</td>
                 <td className="p-3 font-bold">{entry.totalHours || '-'}</td>
-                <td className="p-3">
-                  <button onClick={() => handleEditClick(entry)} className="bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 text-xs font-semibold">{t('edit')}</button>
-                </td>
+                <td className="p-3 flex gap-2 items-center"><button onClick={() => handleEditClick(entry)} className="bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300 text-xs font-semibold">{t('edit')}</button><button onClick={() => handleDeleteClick(entry.id)} className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-xs font-semibold">{t('delete')}</button></td>
               </tr>
               );
             })}
@@ -228,4 +226,5 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     </div>
   );
 }
+
 
