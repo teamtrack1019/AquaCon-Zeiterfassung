@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import jsPDF from "jspdf";
@@ -40,6 +40,21 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
       travelHours: entry.travelHours?.toString() || "0",
       location: entry.location || ""
     });
+  };
+
+  const handleDeleteClick = async (id: number) => {
+    if (confirm("Möchten Sie diesen Eintrag wirklich löschen? / Вы действительно хотите удалить эту запись?")) {
+      const res = await fetch('/api/time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id })
+      });
+      if (res.ok) {
+        fetchEntries();
+      } else {
+        alert("Fehler beim Löschen");
+      }
+    }
   };
 
   const handleSaveEdit = async (id: number) => {
@@ -213,3 +228,4 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     </div>
   );
 }
+

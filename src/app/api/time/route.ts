@@ -138,6 +138,17 @@ export async function POST(req: Request) {
     return NextResponse.json(entry);
   }
 
+  if (action === 'delete') {
+    if (!entry) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+    await prisma.timeEntry.delete({
+      where: { id: entry.id }
+    });
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
+
 
