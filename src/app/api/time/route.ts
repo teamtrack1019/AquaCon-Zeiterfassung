@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -7,12 +7,13 @@ const prisma = new PrismaClient();
 
 function getTodayStr() {
   const date = new Date();
-  return date.toISOString().split('T')[0];
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return formatter.format(date);
 }
 
 function getCurrentTimeStr() {
   const date = new Date();
-  return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit' });
 }
 
 export async function GET(req: Request) {
@@ -150,5 +151,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
-
-

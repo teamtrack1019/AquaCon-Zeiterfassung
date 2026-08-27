@@ -228,7 +228,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold">{t('timeTrackerToday')}</h2>
             {elapsedTime && (
               <div className="bg-green-100 text-green-800 font-mono px-3 py-1 rounded-md shadow-inner text-lg border border-green-300">
-                â± {t('workingTime')}: {elapsedTime}
+                &#9201; {t('workingTime')}: {elapsedTime}
               </div>
             )}
           </div>
@@ -440,6 +440,8 @@ export default function Dashboard() {
     </>
   );
 }
+
+
 
 
 
