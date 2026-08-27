@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useSession, signOut } from "next-auth/react";
 import Header from "@/components/Header";
 import { useLanguage } from "@/context/LanguageContext";
@@ -46,7 +46,7 @@ export default function Dashboard() {
         const currentSecs = now.getSeconds();
         
         let diffMins = currentMins - startMins;
-        if (diffMins < 0) diffMins += 24 * 60; // Gece yarısını geçerse
+        if (diffMins < 0) diffMins += 24 * 60; // Gece yarÄ±sÄ±nÄ± geÃ§erse
         
         const hrs = Math.floor(diffMins / 60);
         const mins = diffMins % 60;
@@ -203,8 +203,8 @@ export default function Dashboard() {
     <>
       <Header />
       <main className="p-4 sm:p-8 max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold text-center sm:text-left">{t('hello')}, <span className="text-blue-600">{session?.user?.name}</span></h1>
+        <div className="flex justify-between items-center mb-6 gap-2 w-full">
+          <h1 className="text-2xl sm:text-3xl font-bold text-left">{t('hello')}, <span className="text-blue-600">{session?.user?.name}</span></h1>
           <div className="flex items-center gap-4">
             {(session?.user as any)?.role === 'ADMIN' && (
               <button 
@@ -228,7 +228,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold">{t('timeTrackerToday')}</h2>
             {elapsedTime && (
               <div className="bg-green-100 text-green-800 font-mono px-3 py-1 rounded-md shadow-inner text-lg border border-green-300">
-                ⏱ {t('workingTime')}: {elapsedTime}
+                â± {t('workingTime')}: {elapsedTime}
               </div>
             )}
           </div>
@@ -415,7 +415,7 @@ export default function Dashboard() {
                   return (
                     <li key={req.id} className="p-3 border rounded flex justify-between items-center bg-gray-50">
                       <div>
-                        <span className="font-bold mr-2">{req.type === 'URLAUB' ? `🏖 ${t('vacation')}` : `🤒 ${t('sick')}`}</span>
+                        <span className="font-bold mr-2">{req.type === 'URLAUB' ? `ðŸ– ${t('vacation')}` : `ðŸ¤’ ${t('sick')}`}</span>
                         <span className="text-gray-700">{formatDbDate(req.startDate)} {t('to')} {formatDbDate(req.endDate)}</span>
                         <span className="ml-2 text-sm text-gray-500">({req.daysCount} {t('days')})</span>
                       </div>
@@ -440,5 +440,6 @@ export default function Dashboard() {
     </>
   );
 }
+
 
 

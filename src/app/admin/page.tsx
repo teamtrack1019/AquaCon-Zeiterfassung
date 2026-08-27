@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useSession, signOut } from "next-auth/react";
 import Header from "@/components/Header";
 import { useLanguage } from "@/context/LanguageContext";
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
   };
 
   const deleteUser = async (userId: number, username: string) => {
-    if (!confirm(`Möchten Sie den Mitarbeiter '${username}' wirklich löschen? Alle seine Zeiteinträge werden ebenfalls gelöscht.`)) return;
+    if (!confirm(`MÃ¶chten Sie den Mitarbeiter '${username}' wirklich lÃ¶schen? Alle seine ZeiteintrÃ¤ge werden ebenfalls gelÃ¶scht.`)) return;
     
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: 'DELETE'
@@ -115,7 +115,7 @@ export default function AdminDashboard() {
 
   const handleAdminPasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!confirm("Möchten Sie Ihr Admin-Passwort wirklich ändern?")) return;
+    if (!confirm("MÃ¶chten Sie Ihr Admin-Passwort wirklich Ã¤ndern?")) return;
     
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
     });
 
     if (res.ok) {
-      alert("Passwort erfolgreich geändert!");
+      alert("Passwort erfolgreich geÃ¤ndert!");
       setAdminNewPassword("");
     } else {
       const err = await res.json();
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
   };
 
   const changeWorkerPassword = async (userId: number, username: string) => {
-    const newPassword = prompt(`Neues Passwort (PIN) für '${username}' eingeben:`);
+    const newPassword = prompt(`Neues Passwort (PIN) fÃ¼r '${username}' eingeben:`);
     if (!newPassword) return;
     
     if (newPassword.length < 3) {
@@ -148,19 +148,19 @@ export default function AdminDashboard() {
     });
     
     if (res.ok) {
-      alert(`Passwort für '${username}' erfolgreich geändert!`);
+      alert(`Passwort fÃ¼r '${username}' erfolgreich geÃ¤ndert!`);
     } else {
       const err = await res.json();
-      alert(err.error || "Fehler beim Ändern des Passworts");
+      alert(err.error || "Fehler beim Ã„ndern des Passworts");
     }
   };
 
   const changeWorkerLeave = async (userId: number, username: string, currentDays: number) => {
-    const newVal = prompt(`Jahresurlaub für '${username}' ändern:`, currentDays.toString());
+    const newVal = prompt(`Jahresurlaub fÃ¼r '${username}' Ã¤ndern:`, currentDays.toString());
     if (newVal === null) return;
     
     const parsed = parseInt(newVal);
-    if (isNaN(parsed) || parsed < 0) return alert("Ungültige Anzahl");
+    if (isNaN(parsed) || parsed < 0) return alert("UngÃ¼ltige Anzahl");
 
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: 'PATCH',
@@ -176,11 +176,11 @@ export default function AdminDashboard() {
   };
 
   const changeWorkerCarriedLeave = async (userId: number, username: string, currentDays: number) => {
-    const newVal = prompt(`${t('lastYearRest')} für '${username}' ${t('change')}:`, currentDays.toString());
+    const newVal = prompt(`${t('lastYearRest')} fÃ¼r '${username}' ${t('change')}:`, currentDays.toString());
     if (newVal === null) return;
     
     const parsed = parseInt(newVal);
-    if (isNaN(parsed) || parsed < 0) return alert("Ungültige Anzahl");
+    if (isNaN(parsed) || parsed < 0) return alert("UngÃ¼ltige Anzahl");
 
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: 'PATCH',
@@ -262,8 +262,8 @@ export default function AdminDashboard() {
     <>
       <Header />
       <main className="p-4 sm:p-8 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-          <h1 className="text-3xl font-bold">{t('adminTitle')}</h1>
+        <div className="flex justify-between items-center mb-8 gap-2 w-full">
+          <h1 className="text-xl sm:text-3xl font-bold">{t('adminTitle')}</h1>
           <div className="flex items-center gap-4">
             {/* Notification Bell for Pending Leaves */}
             <div className="relative">
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
                 onClick={() => setShowLeavesModal(!showLeavesModal)}
                 className="text-2xl relative focus:outline-none"
               >
-                🔔
+                ðŸ””
                 {pendingLeaves.length > 0 && (
                   <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
                     {pendingLeaves.length}
@@ -398,7 +398,7 @@ export default function AdminDashboard() {
                     <div className="flex flex-col mr-2">
                       <span className="font-semibold text-lg">{u.username}</span>
                       <span className="text-xs text-gray-500 font-mono">
-                        {u.password?.startsWith('$2') ? 'Verschlüsselt (Bitte Passwort neu vergeben)' : `PIN: ${u.password}`}
+                        {u.password?.startsWith('$2') ? 'VerschlÃ¼sselt (Bitte Passwort neu vergeben)' : `PIN: ${u.password}`}
                       </span>
                     </div>
                     {u.role !== 'ADMIN' && (
@@ -533,7 +533,7 @@ export default function AdminDashboard() {
                         return (
                           <li key={req.id} className="p-3 border rounded flex justify-between items-center bg-gray-50">
                             <div>
-                              <span className="font-bold mr-2">{req.type === 'URLAUB' ? `🏖 ${t('vacation')}` : `🤒 ${t('sick')}`}</span>
+                              <span className="font-bold mr-2">{req.type === 'URLAUB' ? `ðŸ– ${t('vacation')}` : `ðŸ¤’ ${t('sick')}`}</span>
                               <span className="text-gray-700">{formatDbDate(req.startDate)} {t('to')} {formatDbDate(req.endDate)}</span>
                               <span className="ml-2 text-sm text-gray-500">({req.daysCount} {t('days')})</span>
                             </div>
@@ -559,5 +559,6 @@ export default function AdminDashboard() {
     </>
   );
 }
+
 
 
