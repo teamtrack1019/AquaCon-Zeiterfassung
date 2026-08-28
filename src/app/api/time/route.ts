@@ -29,7 +29,15 @@ export async function GET(req: Request) {
     orderBy: { id: 'desc' }
   });
 
-  return NextResponse.json(entry || null);
+  if (entry) {
+    return NextResponse.json(entry);
+  } else {
+    const lastEntry = await prisma.timeEntry.findFirst({
+      where: { userId: user.id, location: { not: "" } },
+      orderBy: { id: 'desc' }
+    });
+    return NextResponse.json({ isDraft: true, location: lastEntry?.location || "" });
+  }
 }
 
 export async function POST(req: Request) {
@@ -160,4 +168,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
+
 

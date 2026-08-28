@@ -84,11 +84,16 @@ export default function Dashboard() {
       const res = await fetch('/api/time');
       if (res.ok) {
         const data = await res.json();
-        setEntry(data);
-        if (data) {
+        if (data && !data.isDraft) {
+          setEntry(data);
           setPause(data.pauseHours?.toString() || "0.5");
           setTravel(data.travelHours?.toString() || "0");
           setLocation(data.location || "");
+        } else if (data && data.isDraft) {
+          setEntry(null);
+          setLocation(data.location || "");
+        } else {
+          setEntry(null);
         }
       }
     } catch (e) {
@@ -461,6 +466,7 @@ export default function Dashboard() {
     </>
   );
 }
+
 
 
 
