@@ -32,6 +32,15 @@ export async function GET(req: Request) {
   if (entry) {
     return NextResponse.json(entry);
   } else {
+    // If it's Monday, start fresh with empty location
+    const date = new Date();
+    const formatterDay = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Berlin', weekday: 'short' });
+    const weekday = formatterDay.format(date);
+
+    if (weekday === 'Mon') {
+      return NextResponse.json({ isDraft: true, location: "" });
+    }
+
     const lastEntry = await prisma.timeEntry.findFirst({
       where: { userId: user.id, location: { not: "" } },
       orderBy: { id: 'desc' }
@@ -168,5 +177,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
+
+
 
 
