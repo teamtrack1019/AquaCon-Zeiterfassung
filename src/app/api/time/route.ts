@@ -88,11 +88,14 @@ export async function POST(req: Request) {
     const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
     const stopMins = parseInt(stopParts[0]) * 60 + parseInt(stopParts[1]);
     
-    let diffHours = (stopMins - startMins) / 60;
+    let diffMins = stopMins - startMins;
+    if (diffMins < 0) diffMins += 24 * 60;
+    let diffHours = diffMins / 60;
     const finalPause = parseFloat(pauseHours) || 0;
     const finalTravel = parseFloat(travelHours) || 0;
 
-    const totalHours = diffHours - finalPause + finalTravel;
+    // Fahrzeit is NO LONGER ADDED to totalHours, as it is already included in the work time.
+    const totalHours = diffHours - finalPause;
 
     entry = await prisma.timeEntry.update({
       where: { id: entry.id },
@@ -113,25 +116,31 @@ export async function POST(req: Request) {
     }
     
     let totalHours = null;
-    if (startTime && endTime) {
-        const startParts = startTime.split(':');
-        const stopParts = endTime.split(':');
+    const finalStart = startTime !== undefined ? startTime : entry.startTime;
+    const finalEnd = endTime !== undefined ? endTime : entry.endTime;
+    const finalPause = parseFloat(pauseHours) || 0;
+    const finalTravel = parseFloat(travelHours) || 0;
+
+    if (finalStart && finalEnd) {
+        const startParts = finalStart.split(':');
+        const stopParts = finalEnd.split(':');
         const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
         const stopMins = parseInt(stopParts[0]) * 60 + parseInt(stopParts[1]);
         
-        let diffHours = (stopMins - startMins) / 60;
-        const finalPause = parseFloat(pauseHours) || 0;
-        const finalTravel = parseFloat(travelHours) || 0;
-        totalHours = parseFloat((diffHours - finalPause + finalTravel).toFixed(2));
+        let diffMins = stopMins - startMins;
+        if (diffMins < 0) diffMins += 24 * 60;
+        let diffHours = diffMins / 60;
+        // Fahrzeit is not added!
+        totalHours = parseFloat((diffHours - finalPause).toFixed(2));
     }
 
     entry = await prisma.timeEntry.update({
       where: { id: entry.id },
       data: {
-        startTime,
-        endTime,
-        pauseHours: parseFloat(pauseHours) || 0,
-        travelHours: parseFloat(travelHours) || 0,
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+        pauseHours: finalPause,
+        travelHours: finalTravel,
         location: location,
         ...(totalHours !== null && { totalHours })
       }
@@ -151,3 +160,4 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
+

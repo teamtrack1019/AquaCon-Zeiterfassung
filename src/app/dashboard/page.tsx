@@ -98,6 +98,27 @@ export default function Dashboard() {
     }
   };
 
+  const handleSaveInputs = async () => {
+    if (!entry) return;
+    try {
+      const res = await fetch('/api/time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', id: entry.id, pauseHours: pause, travelHours: travel, location })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEntry(data);
+        setRefreshCal(prev => prev + 1);
+        alert(t('successApplied') || "Erfolgreich aktualisiert!");
+      } else {
+        alert("Fehler beim Speichern");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleAction = async (action: 'start' | 'stop') => {
     try {
       const res = await fetch('/api/time', {
@@ -440,6 +461,7 @@ export default function Dashboard() {
     </>
   );
 }
+
 
 
 
