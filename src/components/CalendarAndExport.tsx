@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -8,6 +8,12 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
   const { t } = useLanguage();
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState("");
+
+  useEffect(() => {
+    const now = new Date();
+    setSelectedMonth(`${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`);
+  }, []);
 
   // Edit states for calendar
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -75,6 +81,27 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     }
   };
 
+  const displayedEntries = useMemo(() => {
+    return entries.filter(e => e.date && e.date.startsWith(selectedMonth));
+  }, [entries, selectedMonth]);
+
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    const now = new Date();
+    set.add(`${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`);
+    entries.forEach(e => {
+      if (e.date) {
+        set.add(e.date.substring(0, 7));
+      }
+    });
+    return Array.from(set).sort().reverse();
+  }, [entries]);
+
+  const formatMonthLabel = (ym: string) => {
+    const parts = ym.split('-');
+    return `${parts[1]}/${parts[0]}`;
+  };
+
   const generatePDF = () => {
     const doc = new jsPDF();
     
@@ -105,7 +132,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
       return dateStr;
     };
 
-    entries.forEach(entry => {
+    displayedEntries.forEach(entry => {
       const entryData = [
         formatDateWithDay(entry.date),
         entry.location || "-",
@@ -138,9 +165,20 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
   if (loading) return <div className="mt-8 text-gray-500">...</div>;
 
   return (
-    <div className="bg-white shadow p-6 rounded mt-8">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">{t('calendar')}</h2>
+        <div className="bg-white shadow p-6 rounded mt-8">
+      <div className="flex flex-wrap justify-between items-center mb-4 gap-4">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-bold">{t('calendar')}</h2>
+          <select 
+            value={selectedMonth} 
+            onChange={e => setSelectedMonth(e.target.value)}
+            className="border p-2 rounded bg-gray-50 text-lg font-semibold cursor-pointer"
+          >
+            {availableMonths.map(ym => (
+              <option key={ym} value={ym}>{formatMonthLabel(ym)}</option>
+            ))}
+          </select>
+        </div>
         <button 
           onClick={generatePDF}
           className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700 transition"
@@ -164,12 +202,12 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
             </tr>
           </thead>
           <tbody>
-            {entries.length === 0 && (
+            {displayedEntries.length === 0 && (
               <tr>
                 <td colSpan={8} className="p-3 text-center text-gray-500">{t('noEntries')}</td>
               </tr>
             )}
-            {entries.map((entry) => {
+            {displayedEntries.map((entry) => {
               const formattedDate = entry.date ? (() => {
                 const parts = entry.date.split('-');
                 if (parts.length === 3) {
@@ -211,12 +249,12 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
               );
             })}
           </tbody>
-          {entries.length > 0 && (
+          {displayedEntries.length > 0 && (
             <tfoot>
               <tr className="bg-blue-50 font-bold border-t-2 border-blue-200">
                 <td colSpan={6} className="p-3 text-right">{t('totalHours')}:</td>
                 <td colSpan={2} className="p-3 text-blue-700 text-lg">
-                  {entries.reduce((sum, entry) => sum + (entry.totalHours || 0), 0).toFixed(2)} h
+                  {displayedEntries.reduce((sum, entry) => sum + (entry.totalHours || 0), 0).toFixed(2)} h
                 </td>
               </tr>
             </tfoot>
@@ -226,5 +264,6 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     </div>
   );
 }
+
 
 
