@@ -103,8 +103,21 @@ export default function Dashboard() {
     }
   };
 
+  const isReminderDay = [1, 4, 5].includes(new Date().getDay());
+
+  const checkFahrzeitReminder = (travelVal: string) => {
+    if (isReminderDay) {
+      const val = parseFloat(travelVal);
+      if (isNaN(val) || val === 0) {
+        return confirm(t('fahrzeitConfirm'));
+      }
+    }
+    return true;
+  };
+
   const handleSaveInputs = async () => {
     if (!entry) return;
+    if (!checkFahrzeitReminder(travel)) return;
     try {
       const res = await fetch('/api/time', {
         method: 'POST',
@@ -125,6 +138,7 @@ export default function Dashboard() {
   };
 
   const handleAction = async (action: 'start' | 'stop') => {
+    if (action === 'stop' && !checkFahrzeitReminder(travel)) return;
     try {
       const res = await fetch('/api/time', {
         method: 'POST',
@@ -159,6 +173,7 @@ export default function Dashboard() {
   };
 
   const handleUpdate = async () => {
+    if (!checkFahrzeitReminder(editTravel)) return;
     try {
       const res = await fetch('/api/time', {
         method: 'POST',
@@ -289,15 +304,20 @@ export default function Dashboard() {
                     className="border p-2 rounded w-32" 
                   />
                 </div>
-                <div>
+                                <div>
                   <label className="block text-sm font-semibold mb-1">{t('travel')}</label>
                   <input 
                     type="number" 
                     value={travel}
                     onChange={e => setTravel(e.target.value)}
                     step="0.5" 
-                    className="border p-2 rounded w-32" 
+                    className={`border p-2 rounded w-32 ${isReminderDay ? 'border-orange-500 bg-orange-50' : ''}`} 
                   />
+                  {isReminderDay && (
+                    <p className="text-orange-600 text-xs font-bold mt-1 w-32 leading-tight">
+                      {t('fahrzeitReminder')}
+                    </p>
+                  )}
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label className="block text-sm font-semibold mb-1">{t('location')}</label>
@@ -466,6 +486,7 @@ export default function Dashboard() {
     </>
   );
 }
+
 
 
 
