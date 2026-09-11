@@ -16,7 +16,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
   }, []);
 
   // Edit states for calendar
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<any>(null);
   const [editForm, setEditForm] = useState<any>({});
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     });
   };
 
-  const handleDeleteClick = async (id: number) => {
+  const handleDeleteClick = async (id: any) => {
     if (confirm("Möchten Sie diesen Eintrag wirklich löschen? / Вы действительно хотите удалить эту запись?")) {
       const res = await fetch('/api/time', {
         method: 'POST',
@@ -63,7 +63,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     }
   };
 
-  const handleSaveEdit = async (id: number) => {
+  const handleSaveEdit = async (id: any) => {
     const res = await fetch('/api/time', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

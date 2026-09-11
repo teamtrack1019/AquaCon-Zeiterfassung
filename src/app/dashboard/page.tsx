@@ -157,24 +157,6 @@ export default function Dashboard() {
       } else {
         const err = await res.json();
         alert(err.error || "Ein Fehler ist aufgetreten");
-    try {
-      const res = await fetch('/api/time', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, pauseHours: pause, travelHours: travel, location })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEntry(data);
-        if (data) {
-          setPause(data.pauseHours?.toString() || "0.5");
-          setTravel(data.travelHours?.toString() || "0");
-          setLocation(data.location || "");
-        }
-        setRefreshCal(prev => prev + 1);
-      } else {
-        const err = await res.json();
-        alert(err.error || "Ein Fehler ist aufgetreten");
       }
     } catch (e) {
       console.error(e);
