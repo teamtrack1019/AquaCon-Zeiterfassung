@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useSession, signOut } from "next-auth/react";
 import Header from "@/components/Header";
 import { useLanguage } from "@/context/LanguageContext";
@@ -46,7 +46,7 @@ export default function Dashboard() {
         const currentSecs = now.getSeconds();
         
         let diffMins = currentMins - startMins;
-        if (diffMins < 0) diffMins += 24 * 60; // Gece yarÄ±sÄ±nÄ± geÃ§erse
+        if (diffMins < 0) diffMins += 24 * 60;
         
         const hrs = Math.floor(diffMins / 60);
         const mins = diffMins % 60;
