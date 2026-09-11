@@ -3,12 +3,16 @@ import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+import { getGermanHolidayName } from '@/lib/holidays';
+
 const prisma = new PrismaClient();
 
-// Hafta sonları hariç gün hesaplama fonksiyonu
+// Hafta sonları ve resmi tatiller (Feiertage) hariç iş günü hesaplama
 function calculateWorkingDays(startDateStr: string, endDateStr: string): number {
-  const start = new Date(startDateStr);
-  const end = new Date(endDateStr);
+  const [sY, sM, sD] = startDateStr.split('-').map(Number);
+  const [eY, eM, eD] = endDateStr.split('-').map(Number);
+  const start = new Date(sY, sM - 1, sD);
+  const end = new Date(eY, eM - 1, eD);
   let count = 0;
   
   let current = new Date(start);
@@ -16,7 +20,13 @@ function calculateWorkingDays(startDateStr: string, endDateStr: string): number 
     const dayOfWeek = current.getDay();
     // 0 = Pazar, 6 = Cumartesi
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      count++;
+      const y = current.getFullYear();
+      const m = (current.getMonth() + 1).toString().padStart(2, '0');
+      const d = current.getDate().toString().padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+      if (!getGermanHolidayName(dateStr)) {
+        count++;
+      }
     }
     current.setDate(current.getDate() + 1);
   }

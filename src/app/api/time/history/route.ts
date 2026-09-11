@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getGermanHolidays } from '@/lib/holidays';
 
 const prisma = new PrismaClient();
 
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   // Get all time entries for the user
-  const entries: any[] = await prisma.timeEntry.findMany({
+  const rawEntries: any[] = await prisma.timeEntry.findMany({
     where: { userId: user.id },
     orderBy: [
       { date: 'desc' },
@@ -51,6 +52,42 @@ export async function GET(req: Request) {
     }
   });
 
+  // Collect relevant years
+  const currentYear = new Date().getFullYear();
+  const yearsSet = new Set<number>([currentYear - 1, currentYear, currentYear + 1]);
+  rawEntries.forEach(e => {
+    if (e.date) {
+      const y = parseInt(e.date.substring(0, 4));
+      if (!isNaN(y)) yearsSet.add(y);
+    }
+  });
+  approvedLeaves.forEach(l => {
+    if (l.startDate) {
+      const y = parseInt(l.startDate.substring(0, 4));
+      if (!isNaN(y)) yearsSet.add(y);
+    }
+  });
+
+  // Generate holidays map for all relevant years
+  const holidaysMap: Record<string, string> = {};
+  yearsSet.forEach(year => {
+    const h = getGermanHolidays(year);
+    Object.assign(holidaysMap, h);
+  });
+
+  // Process raw entries and mark if worked on a holiday
+  const entries: any[] = rawEntries.map(e => {
+    const holidayName = holidaysMap[e.date];
+    if (holidayName) {
+      return {
+        ...e,
+        isFeiertag: true,
+        feiertagName: holidayName
+      };
+    }
+    return e;
+  });
+
   const existingDates = new Set(entries.map(e => e.date));
 
   // Generate entries for approved leave dates
@@ -58,6 +95,8 @@ export async function GET(req: Request) {
     const days = getWorkingDaysInRange(leave.startDate, leave.endDate);
     days.forEach(dateStr => {
       if (!existingDates.has(dateStr)) {
+        existingDates.add(dateStr);
+        const holidayName = holidaysMap[dateStr];
         entries.push({
           id: `leave-${leave.id}-${dateStr}`,
           userId: user.id,
@@ -70,10 +109,38 @@ export async function GET(req: Request) {
           location: leave.type === 'URLAUB' ? 'Urlaub' : 'Krank',
           isLeave: true,
           leaveType: leave.type,
-          leaveId: leave.id
+          leaveId: leave.id,
+          isFeiertag: !!holidayName,
+          feiertagName: holidayName || null
         });
       }
     });
+  });
+
+  // Generate entries for public holidays (Feiertage) on workdays where user didn't work and didn't take leave
+  Object.entries(holidaysMap).forEach(([holidayDate, holidayName]) => {
+    if (!existingDates.has(holidayDate)) {
+      const [y, m, d] = holidayDate.split('-').map(Number);
+      const dayOfWeek = new Date(y, m - 1, d).getDay();
+      // Add if Monday-Friday
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        existingDates.add(holidayDate);
+        entries.push({
+          id: `feiertag-${holidayDate}`,
+          userId: user.id,
+          date: holidayDate,
+          startTime: "-",
+          endTime: "-",
+          pauseHours: 0,
+          travelHours: 0,
+          totalHours: null,
+          location: `Feiertag (${holidayName})`,
+          isFeiertag: true,
+          isHolidayOff: true,
+          feiertagName: holidayName
+        });
+      }
+    }
   });
 
   // Sort all entries descending by date

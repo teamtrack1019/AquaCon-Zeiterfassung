@@ -132,14 +132,44 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     let totalMonthHours = 0;
 
     displayedEntries.forEach(entry => {
+      let locationText = entry.location || "-";
+      let startText = entry.startTime || "-";
+      let endText = entry.endTime || "-";
+      let pauseText = entry.pauseHours?.toString() || "0";
+      let travelText = entry.travelHours?.toString() || "0";
+      let totalText = entry.totalHours ? `${entry.totalHours.toString()} h` : "-";
+
+      if (entry.isLeave) {
+        locationText = entry.leaveType === 'URLAUB' ? t('vacation') : t('sick');
+        startText = "-";
+        endText = "-";
+        pauseText = "0";
+        travelText = "0";
+        totalText = entry.leaveType === 'URLAUB' ? t('vacation') : t('sick');
+      } else if (entry.isFeiertag && entry.isHolidayOff) {
+        locationText = `Feiertag: ${entry.feiertagName}`;
+        startText = "-";
+        endText = "-";
+        pauseText = "0";
+        travelText = "0";
+        totalText = "Feiertag";
+      } else if (entry.isFeiertag && !entry.isHolidayOff) {
+        locationText = `${entry.location || "-"} (Feiertag: ${entry.feiertagName})`;
+        startText = entry.startTime || "-";
+        endText = entry.endTime || "-";
+        pauseText = entry.pauseHours?.toString() || "0";
+        travelText = entry.travelHours?.toString() || "0";
+        totalText = `${entry.totalHours ? entry.totalHours.toString() : "-"} h (Feiertag)`;
+      }
+
       const entryData = [
         formatDateWithDay(entry.date),
-        entry.isLeave ? (entry.leaveType === 'URLAUB' ? t('vacation') : t('sick')) : (entry.location || "-"),
-        entry.isLeave ? "-" : (entry.startTime || "-"),
-        entry.isLeave ? "-" : (entry.endTime || "-"),
-        entry.isLeave ? "0" : (entry.pauseHours?.toString() || "0"),
-        entry.isLeave ? "0" : (entry.travelHours?.toString() || "0"),
-        entry.isLeave ? (entry.leaveType === 'URLAUB' ? t('vacation') : t('sick')) : (entry.totalHours ? entry.totalHours.toString() : "-")
+        locationText,
+        startText,
+        endText,
+        pauseText,
+        travelText,
+        totalText
       ];
       tableRows.push(entryData);
       
@@ -209,6 +239,35 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
             {displayedEntries.map((entry) => {
               const formattedDate = formatDateWithDay(entry.date);
 
+              // Public Holiday (Feiertag) without work
+              if (entry.isFeiertag && entry.isHolidayOff) {
+                return (
+                  <tr key={entry.id} className="bg-purple-50/40 hover:bg-purple-50/70 transition-colors">
+                    <td className="p-3 font-medium text-gray-900">{formattedDate}</td>
+                    <td className="p-3 font-bold" colSpan={1}>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-900 shadow-sm">
+                        🎉 {entry.feiertagName}
+                      </span>
+                    </td>
+                    <td className="p-3 text-gray-400">-</td>
+                    <td className="p-3 text-gray-400">-</td>
+                    <td className="p-3 text-gray-400">0</td>
+                    <td className="p-3 text-gray-400">0</td>
+                    <td className="p-3">
+                      <span className="text-xs font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                        Feiertag frei
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-bold inline-block">
+                        Feiertag
+                      </span>
+                    </td>
+                  </tr>
+                );
+              }
+
+              // Approved Leave (Urlaub / Krank)
               if (entry.isLeave) {
                 return (
                   <tr key={entry.id} className={`${entry.leaveType === 'URLAUB' ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'bg-red-50/40 hover:bg-red-50/70'} transition-colors`}>
@@ -257,14 +316,30 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
               }
 
               return (
-                <tr key={entry.id} className="hover:bg-blue-50/40 transition-colors">
+                <tr key={entry.id} className={`hover:bg-blue-50/40 transition-colors ${entry.isFeiertag ? 'bg-purple-50/20 border-l-4 border-purple-500' : ''}`}>
                   <td className="p-3 font-medium text-gray-900">{formattedDate}</td>
-                  <td className="p-3 text-gray-700">{entry.location || '-'}</td>
+                  <td className="p-3 text-gray-700">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span>{entry.location || '-'}</span>
+                      {entry.isFeiertag && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 shadow-sm">
+                          🎉 {entry.feiertagName}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3 text-gray-700">{entry.startTime || '-'}</td>
                   <td className="p-3 text-gray-700">{entry.endTime || '-'}</td>
                   <td className="p-3 text-gray-700">{entry.pauseHours}</td>
                   <td className="p-3 text-gray-700">{entry.travelHours}</td>
-                  <td className="p-3 font-bold text-blue-600">{entry.totalHours ? entry.totalHours.toFixed(2) : '-'}</td>
+                  <td className="p-3 font-bold text-blue-600">
+                    <div className="flex flex-col">
+                      <span>{entry.totalHours ? entry.totalHours.toFixed(2) : '-'} h</span>
+                      {entry.isFeiertag && (
+                        <span className="text-[10px] font-semibold text-purple-700">Feiertagsarbeit</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3">
                     <div className="flex gap-1.5 items-center">
                       <button onClick={() => handleEditClick(entry)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-1 rounded text-xs font-semibold transition">{t('edit')}</button>

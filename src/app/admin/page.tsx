@@ -225,14 +225,44 @@ export default function AdminDashboard() {
     let totalMonthHours = 0;
 
     userEntries.forEach(entry => {
+      let locationText = entry.location || "-";
+      let startText = entry.startTime || "-";
+      let endText = entry.endTime || "-";
+      let pauseText = entry.pauseHours?.toString() || "0";
+      let travelText = entry.travelHours?.toString() || "0";
+      let totalText = entry.totalHours ? `${entry.totalHours.toString()} h` : "-";
+
+      if (entry.isLeave) {
+        locationText = entry.leaveType === 'URLAUB' ? t('vacation') : t('sick');
+        startText = "-";
+        endText = "-";
+        pauseText = "0";
+        travelText = "0";
+        totalText = entry.leaveType === 'URLAUB' ? t('vacation') : t('sick');
+      } else if (entry.isFeiertag && entry.isHolidayOff) {
+        locationText = `Feiertag: ${entry.feiertagName}`;
+        startText = "-";
+        endText = "-";
+        pauseText = "0";
+        travelText = "0";
+        totalText = "Feiertag";
+      } else if (entry.isFeiertag && !entry.isHolidayOff) {
+        locationText = `${entry.location || "-"} (Feiertag: ${entry.feiertagName})`;
+        startText = entry.startTime || "-";
+        endText = entry.endTime || "-";
+        pauseText = entry.pauseHours?.toString() || "0";
+        travelText = entry.travelHours?.toString() || "0";
+        totalText = `${entry.totalHours ? entry.totalHours.toString() : "-"} h (Feiertag)`;
+      }
+
       const entryData = [
         formatDateWithDay(entry.date),
-        entry.location || "-",
-        entry.startTime || "-",
-        entry.endTime || "-",
-        entry.pauseHours?.toString() || "0",
-        entry.travelHours?.toString() || "0",
-        entry.totalHours ? entry.totalHours.toString() : "-"
+        locationText,
+        startText,
+        endText,
+        pauseText,
+        travelText,
+        totalText
       ];
       tableRows.push(entryData);
       
@@ -553,19 +583,83 @@ export default function AdminDashboard() {
                       {userEntries.length === 0 ? (
                         <tr><td colSpan={7} className="p-6 text-center text-gray-500">{t('noTimesYet')}</td></tr>
                       ) : (
-                        userEntries.map((e: any) => (
-                          <tr key={e.id} className="hover:bg-blue-50/40 transition-colors">
-                            <td className="p-3 font-medium text-gray-900">{formatDateWithDay(e.date)}</td>
-                            <td className="p-3 max-w-[150px] break-words text-gray-700">{e.location || '-'}</td>
-                            <td className="p-3 text-gray-700">{e.startTime || '-'}</td>
-                            <td className="p-3 text-gray-700">{e.endTime || '-'}</td>
-                            <td className="p-3 text-gray-700">{e.pauseHours}</td>
-                            <td className="p-3 text-gray-700">{e.travelHours}</td>
-                            <td className="p-3 font-bold text-blue-600">
-                              {e.totalHours ? e.totalHours.toFixed(2) : '-'}
-                            </td>
-                          </tr>
-                        ))
+                        userEntries.map((e: any) => {
+                          const formattedDate = formatDateWithDay(e.date);
+
+                          // Public Holiday without work
+                          if (e.isFeiertag && e.isHolidayOff) {
+                            return (
+                              <tr key={e.id} className="bg-purple-50/40 hover:bg-purple-50/70 transition-colors">
+                                <td className="p-3 font-medium text-gray-900">{formattedDate}</td>
+                                <td className="p-3 font-bold" colSpan={1}>
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-900 shadow-sm">
+                                    🎉 {e.feiertagName}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-gray-400">-</td>
+                                <td className="p-3 text-gray-400">-</td>
+                                <td className="p-3 text-gray-400">0</td>
+                                <td className="p-3 text-gray-400">0</td>
+                                <td className="p-3">
+                                  <span className="text-xs font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                                    Feiertag frei
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          // Approved Leave
+                          if (e.isLeave) {
+                            return (
+                              <tr key={e.id} className={`${e.leaveType === 'URLAUB' ? 'bg-amber-50/40 hover:bg-amber-50/70' : 'bg-red-50/40 hover:bg-red-50/70'} transition-colors`}>
+                                <td className="p-3 font-medium text-gray-900">{formattedDate}</td>
+                                <td className="p-3 font-bold">
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${e.leaveType === 'URLAUB' ? 'bg-amber-100 text-amber-900' : 'bg-red-100 text-red-900'}`}>
+                                    {e.leaveType === 'URLAUB' ? `🏖️ ${t('vacation')}` : `🤒 ${t('sick')}`}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-gray-400">-</td>
+                                <td className="p-3 text-gray-400">-</td>
+                                <td className="p-3 text-gray-400">0</td>
+                                <td className="p-3 text-gray-400">0</td>
+                                <td className="p-3">
+                                  <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                                    {e.leaveType === 'URLAUB' ? t('vacation') : t('sick')}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return (
+                            <tr key={e.id} className={`hover:bg-blue-50/40 transition-colors ${e.isFeiertag ? 'bg-purple-50/20 border-l-4 border-purple-500' : ''}`}>
+                              <td className="p-3 font-medium text-gray-900">{formattedDate}</td>
+                              <td className="p-3 max-w-[150px] break-words text-gray-700">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span>{e.location || '-'}</span>
+                                  {e.isFeiertag && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 shadow-sm">
+                                      🎉 {e.feiertagName}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-gray-700">{e.startTime || '-'}</td>
+                              <td className="p-3 text-gray-700">{e.endTime || '-'}</td>
+                              <td className="p-3 text-gray-700">{e.pauseHours}</td>
+                              <td className="p-3 text-gray-700">{e.travelHours}</td>
+                              <td className="p-3 font-bold text-blue-600">
+                                <div className="flex flex-col">
+                                  <span>{e.totalHours ? e.totalHours.toFixed(2) : '-'} h</span>
+                                  {e.isFeiertag && (
+                                    <span className="text-[10px] font-semibold text-purple-700">Feiertagsarbeit</span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
                       )}
                     </tbody>
                     {userEntries.length > 0 && (
