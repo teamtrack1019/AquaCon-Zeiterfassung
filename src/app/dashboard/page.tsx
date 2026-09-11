@@ -157,6 +157,24 @@ export default function Dashboard() {
       } else {
         const err = await res.json();
         alert(err.error || "Ein Fehler ist aufgetreten");
+    try {
+      const res = await fetch('/api/time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, pauseHours: pause, travelHours: travel, location })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEntry(data);
+        if (data) {
+          setPause(data.pauseHours?.toString() || "0.5");
+          setTravel(data.travelHours?.toString() || "0");
+          setLocation(data.location || "");
+        }
+        setRefreshCal(prev => prev + 1);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Ein Fehler ist aufgetreten");
       }
     } catch (e) {
       console.error(e);
@@ -219,6 +237,7 @@ export default function Dashboard() {
       setLeaveStart("");
       setLeaveEnd("");
       fetchUserDetails();
+      setRefreshCal(prev => prev + 1);
     } else {
       const err = await res.json();
       alert(err.error);
@@ -230,11 +249,12 @@ export default function Dashboard() {
     const res = await fetch(`/api/leave/${id}`, { method: 'DELETE' });
     if (res.ok) {
       fetchUserDetails();
+      setRefreshCal(prev => prev + 1);
     }
   };
 
   if (loading || status === "loading") {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen text-slate-500 font-medium">Laden...</div>;
   }
 
   const isWorking = entry?.startTime && !entry?.endTime;
@@ -269,7 +289,7 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold">{t('timeTrackerToday')}</h2>
             {elapsedTime && (
               <div className="bg-green-100 text-green-800 font-mono px-3 py-1 rounded-md shadow-inner text-lg border border-green-300">
-                &#9201; {t('workingTime')}: {elapsedTime}
+                ⏱️ {t('workingTime')}: {elapsedTime}
               </div>
             )}
           </div>
@@ -442,34 +462,36 @@ export default function Dashboard() {
               <label className="block text-sm font-semibold mb-1">{t('toEnd')}</label>
               <input type="date" value={leaveEnd} onChange={e => setLeaveEnd(e.target.value)} required className="border p-2 rounded" />
             </div>
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded font-bold hover:bg-blue-700">
+            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm">
               {t('apply')}
             </button>
           </form>
 
           <div>
-            <h3 className="font-bold mb-3">{t('myRequests')}</h3>
-            {userDetails?.leaveRequests.length === 0 ? (
+            <h3 className="font-bold mb-3 text-gray-900">{t('myRequests')}</h3>
+            {userDetails?.leaveRequests?.length === 0 ? (
               <p className="text-gray-500 text-sm">{t('noRequestsLeave')}</p>
             ) : (
               <ul className="space-y-2">
-                {userDetails?.leaveRequests.map((req: any) => {
+                {userDetails?.leaveRequests?.map((req: any) => {
                   const formatDbDate = (d: string) => {
                     const p = d?.split('-');
                     return p?.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : d;
                   };
                   return (
-                    <li key={req.id} className="p-3 border rounded flex justify-between items-center bg-gray-50">
-                      <div>
-                        <span className="font-bold mr-2">{req.type === 'URLAUB' ? `ðŸ– ${t('vacation')}` : `ðŸ¤’ ${t('sick')}`}</span>
+                    <li key={req.id} className="p-3 border border-gray-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gray-50">
+                      <div className="text-sm">
+                        <span className="font-bold mr-2 text-gray-900">
+                          {req.type === 'URLAUB' ? `🏖️ ${t('vacation')}` : `🤒 ${t('sick')}`}
+                        </span>
                         <span className="text-gray-700">{formatDbDate(req.startDate)} {t('to')} {formatDbDate(req.endDate)}</span>
-                        <span className="ml-2 text-sm text-gray-500">({req.daysCount} {t('days')})</span>
+                        <span className="ml-2 text-xs text-gray-500 font-medium">({req.daysCount} {t('days')})</span>
                       </div>
                       <div className="flex gap-2 items-center">
-                        {req.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm font-bold">{t('waitingForAdmin')}</span>}
-                        {req.status === 'APPROVED' && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-bold">{t('approved')}</span>}
-                        {req.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-bold">{t('rejected')}</span>}
-                        <button onClick={() => handleDeleteLeave(req.id)} className="text-red-500 hover:text-red-700 font-bold ml-2 text-sm">
+                        {req.status === 'PENDING' && <span className="bg-yellow-100 text-yellow-800 px-2.5 py-0.5 rounded-full text-xs font-bold">{t('waitingForAdmin')}</span>}
+                        {req.status === 'APPROVED' && <span className="bg-green-100 text-green-800 px-2.5 py-0.5 rounded-full text-xs font-bold">{t('approved')}</span>}
+                        {req.status === 'REJECTED' && <span className="bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full text-xs font-bold">{t('rejected')}</span>}
+                        <button onClick={() => handleDeleteLeave(req.id)} className="text-red-500 hover:text-red-700 font-bold ml-2 text-xs">
                           {t('delete')}
                         </button>
                       </div>
@@ -486,11 +508,3 @@ export default function Dashboard() {
     </>
   );
 }
-
-
-
-
-
-
-
-
