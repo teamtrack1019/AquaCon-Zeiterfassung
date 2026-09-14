@@ -1,22 +1,7 @@
 // AquaCon PWA Service Worker for Offline Support
-const CACHE_NAME = 'aquacon-cache-v2';
-
-const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/manifest.json',
-  '/icon',
-  '/apple-icon'
-];
+const CACHE_NAME = 'aquacon-cache-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('Failed to pre-cache some assets during SW install:', err);
-      });
-    })
-  );
   self.skipWaiting();
 });
 
