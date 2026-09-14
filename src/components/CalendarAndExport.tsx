@@ -203,7 +203,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     const finalY = (doc as any).lastAutoTable.finalY || 45;
     doc.setFontSize(11);
     doc.text(`${t('totalWorkingTime')}: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
-    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 14, finalY + 17);
+    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 100, finalY + 10);
 
     doc.save(`aquaCon_Zeiterfassung_${userName}.pdf`);
   };
