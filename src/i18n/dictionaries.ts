@@ -79,6 +79,9 @@ export const dictionaries = {
     offline: "Offline",
     syncing: "Sync...",
     offlineSaved: "Offline gespeichert (Wird bei Verbindung synchronisiert)",
+    pullToRefresh: "Zum Aktualisieren nach unten ziehen",
+    releaseToRefresh: "Loslassen zum Aktualisieren",
+    refreshing: "Wird aktualisiert...",
   },
   ru: {
     login: "Войти",
@@ -160,6 +163,9 @@ export const dictionaries = {
     offline: "Офлайн",
     syncing: "Синхр...",
     offlineSaved: "Сохранено офлайн (Синхронизируется при подключении)",
+    pullToRefresh: "Потяните вниз для обновления",
+    releaseToRefresh: "Отпустите для обновления",
+    refreshing: "Обновление...",
   }
 };
 export type Language = 'de' | 'ru';
