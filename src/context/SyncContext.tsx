@@ -29,6 +29,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const [pendingCount, setPendingCount] = useState<number>(0);
 
   const getQueue = (): OfflineAction[] => {
+    if (typeof window === 'undefined') return [];
     try {
       const data = localStorage.getItem(QUEUE_STORAGE_KEY);
       return data ? JSON.parse(data) : [];
@@ -38,6 +39,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   };
 
   const saveQueue = (queue: OfflineAction[]) => {
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue));
       setPendingCount(queue.length);
@@ -47,6 +49,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   };
 
   const syncNow = useCallback(async () => {
+    if (typeof window === 'undefined') return;
     const queue = getQueue();
     if (queue.length === 0) {
       setStatus('online');
@@ -54,7 +57,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!navigator.onLine) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setStatus('offline');
       setPendingCount(queue.length);
       return;
@@ -94,6 +97,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const queueAction = useCallback((action: Omit<OfflineAction, 'id' | 'createdAt'>) => {
+    if (typeof window === 'undefined') return;
     const queue = getQueue();
     const newAction: OfflineAction = {
       ...action,
@@ -104,7 +108,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     saveQueue(updatedQueue);
 
     // If online, attempt immediate sync
-    if (navigator.onLine) {
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
       syncNow();
     } else {
       setStatus('offline');
