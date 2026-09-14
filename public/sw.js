@@ -1,5 +1,5 @@
 // AquaCon PWA Service Worker for Offline Support
-const CACHE_NAME = 'aquacon-cache-v1';
+const CACHE_NAME = 'aquacon-cache-v2';
 
 const STATIC_ASSETS = [
   '/',
