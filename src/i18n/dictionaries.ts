@@ -1,4 +1,4 @@
-﻿export const dictionaries = {
+export const dictionaries = {
   de: {
     login: "Anmelden",
     username: "Benutzername",
@@ -74,7 +74,11 @@
     times: "Zeiten",
     selectWorker: "Wählen Sie einen Mitarbeiter aus der Liste links, um dessen Zeiten zu sehen.",
     fahrzeitReminder: "⚠️ Bitte vergessen Sie nicht, die heutige Fahrzeit einzutragen!",
-    fahrzeitConfirm: "Sie haben keine Fahrzeit (0 Std.) eingetragen. Möchten Sie trotzdem speichern?"
+    fahrzeitConfirm: "Sie haben keine Fahrzeit (0 Std.) eingetragen. Möchten Sie trotzdem speichern?",
+    online: "Online",
+    offline: "Offline",
+    syncing: "Sync...",
+    offlineSaved: "Offline gespeichert (Wird bei Verbindung synchronisiert)",
   },
   ru: {
     login: "Войти",
@@ -151,7 +155,11 @@
     times: "Время",
     selectWorker: "Выберите сотрудника из списка слева, чтобы увидеть его время.",
     fahrzeitReminder: "⚠️ Пожалуйста, не забудьте указать сегодняшнее время в пути!",
-    fahrzeitConfirm: "Вы не указали время в пути (0 часов). Вы все равно хотите сохранить?"
+    fahrzeitConfirm: "Вы не указали время в пути (0 часов). Вы все равно хотите сохранить?",
+    online: "Онлайн",
+    offline: "Офлайн",
+    syncing: "Синхр...",
+    offlineSaved: "Сохранено офлайн (Синхронизируется при подключении)",
   }
 };
 export type Language = 'de' | 'ru';

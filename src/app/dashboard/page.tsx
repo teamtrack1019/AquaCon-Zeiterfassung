@@ -2,6 +2,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Header from "@/components/Header";
 import { useLanguage } from "@/context/LanguageContext";
+import { useSync } from "@/context/SyncContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import CalendarAndExport from "@/components/CalendarAndExport";
@@ -9,6 +10,7 @@ import CalendarAndExport from "@/components/CalendarAndExport";
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const { t } = useLanguage();
+  const { queueAction } = useSync();
   const router = useRouter();
 
   const [entry, setEntry] = useState<any>(null);
@@ -72,16 +74,43 @@ export default function Dashboard() {
     }
   }, [status, router, session]);
 
+  useEffect(() => {
+    const handleSyncCompleted = () => {
+      fetchEntry();
+      fetchUserDetails();
+      setRefreshCal(prev => prev + 1);
+    };
+    window.addEventListener('aquacon_sync_completed', handleSyncCompleted);
+    return () => window.removeEventListener('aquacon_sync_completed', handleSyncCompleted);
+  }, []);
+
   const fetchUserDetails = async () => {
-    const res = await fetch('/api/leave');
-    if (res.ok) {
-      setUserDetails(await res.json());
+    try {
+      const res = await fetch('/api/leave');
+      if (res.ok) {
+        const data = await res.json();
+        setUserDetails(data);
+        try {
+          localStorage.setItem("aquacon_cached_userdetails", JSON.stringify(data));
+        } catch (e) {}
+      }
+    } catch (e) {
+      // Restore from cache if offline
+      try {
+        const cached = localStorage.getItem("aquacon_cached_userdetails");
+        if (cached) setUserDetails(JSON.parse(cached));
+      } catch (err) {}
     }
   };
 
   const getTodayStr = () => {
     const d = new Date();
     return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const getCurrentTimeStr = () => {
+    const d = new Date();
+    return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   };
 
   const saveLocalDraft = (newLoc?: string, newTravel?: string, newPause?: string) => {
@@ -107,9 +136,11 @@ export default function Dashboard() {
           setPause(data.pauseHours?.toString() || "0.5");
           setTravel(data.travelHours?.toString() || "0");
           setLocation(data.location || "");
+          try {
+            localStorage.setItem("aquacon_today_entry", JSON.stringify(data));
+          } catch (e) {}
         } else {
           setEntry(null);
-          // Check if there is a local draft for today
           let draftRestored = false;
           try {
             const savedDraft = localStorage.getItem("aquacon_today_draft");
@@ -132,7 +163,19 @@ export default function Dashboard() {
         }
       }
     } catch (e) {
-      console.error(e);
+      // If network fails / offline, restore cached entry for today if available
+      try {
+        const cached = localStorage.getItem("aquacon_today_entry");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.date === getTodayStr()) {
+            setEntry(parsed);
+            setPause(parsed.pauseHours?.toString() || "0.5");
+            setTravel(parsed.travelHours?.toString() || "0");
+            setLocation(parsed.location || "");
+          }
+        }
+      } catch (err) {}
     } finally {
       setLoading(false);
     }
@@ -153,6 +196,25 @@ export default function Dashboard() {
   const handleSaveInputs = async () => {
     saveLocalDraft(location, travel, pause);
     if (!checkFahrzeitReminder(travel)) return;
+
+    if (!navigator.onLine) {
+      if (entry) {
+        const offlineEntry = {
+          ...entry,
+          pauseHours: parseFloat(pause) || 0.5,
+          travelHours: parseFloat(travel) || 0,
+          location,
+        };
+        setEntry(offlineEntry);
+        try {
+          localStorage.setItem("aquacon_today_entry", JSON.stringify(offlineEntry));
+        } catch (e) {}
+        queueAction({ type: 'time', endpoint: '/api/time', method: 'POST', payload: { action: 'update', id: entry.id, pauseHours: pause, travelHours: travel, location } });
+      }
+      alert(t('offlineSaved') || "Offline gespeichert!");
+      return;
+    }
+
     if (entry) {
       try {
         const res = await fetch('/api/time', {
@@ -163,13 +225,17 @@ export default function Dashboard() {
         if (res.ok) {
           const data = await res.json();
           setEntry(data);
+          try {
+            localStorage.setItem("aquacon_today_entry", JSON.stringify(data));
+          } catch (e) {}
           setRefreshCal(prev => prev + 1);
           alert(t('successApplied') || "Erfolgreich gespeichert!");
         } else {
           alert("Fehler beim Speichern");
         }
       } catch (e) {
-        console.error(e);
+        queueAction({ type: 'time', endpoint: '/api/time', method: 'POST', payload: { action: 'update', id: entry.id, pauseHours: pause, travelHours: travel, location } });
+        alert(t('offlineSaved') || "Offline gespeichert!");
       }
     } else {
       alert(t('successApplied') || "Erfolgreich gespeichert!");
@@ -178,11 +244,64 @@ export default function Dashboard() {
 
   const handleAction = async (action: 'start' | 'stop') => {
     if (action === 'stop' && !checkFahrzeitReminder(travel)) return;
+    const payload = { action, pauseHours: pause, travelHours: travel, location };
+
+    if (!navigator.onLine) {
+      const now = getCurrentTimeStr();
+      const today = getTodayStr();
+      if (action === 'start') {
+        const offlineEntry = {
+          id: `offline-${Date.now()}`,
+          date: today,
+          startTime: now,
+          endTime: null,
+          pauseHours: parseFloat(pause) || 0.5,
+          travelHours: parseFloat(travel) || 0,
+          location: location || "",
+          totalHours: null,
+          isOffline: true,
+        };
+        setEntry(offlineEntry);
+        try {
+          localStorage.setItem("aquacon_today_entry", JSON.stringify(offlineEntry));
+        } catch (e) {}
+      } else {
+        if (entry) {
+          const startParts = (entry.startTime || now).split(':');
+          const stopParts = now.split(':');
+          const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+          const stopMins = parseInt(stopParts[0]) * 60 + parseInt(stopParts[1]);
+          let diffMins = stopMins - startMins;
+          if (diffMins < 0) diffMins += 24 * 60;
+          const diffHours = diffMins / 60;
+          const finalPause = parseFloat(pause) || 0;
+          const totalHours = parseFloat((diffHours - finalPause).toFixed(2));
+
+          const offlineEntry = {
+            ...entry,
+            endTime: now,
+            pauseHours: finalPause,
+            travelHours: parseFloat(travel) || 0,
+            location,
+            totalHours,
+            isOffline: true,
+          };
+          setEntry(offlineEntry);
+          try {
+            localStorage.setItem("aquacon_today_entry", JSON.stringify(offlineEntry));
+          } catch (e) {}
+        }
+      }
+      queueAction({ type: 'time', endpoint: '/api/time', method: 'POST', payload });
+      alert(t('offlineSaved') || "Offline gespeichert!");
+      return;
+    }
+
     try {
       const res = await fetch('/api/time', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, pauseHours: pause, travelHours: travel, location })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
@@ -191,6 +310,9 @@ export default function Dashboard() {
           setPause(data.pauseHours?.toString() || "0.5");
           setTravel(data.travelHours?.toString() || "0");
           setLocation(data.location || "");
+          try {
+            localStorage.setItem("aquacon_today_entry", JSON.stringify(data));
+          } catch (e) {}
         }
         setRefreshCal(prev => prev + 1);
       } else {
@@ -198,7 +320,8 @@ export default function Dashboard() {
         alert(err.error || "Ein Fehler ist aufgetreten");
       }
     } catch (e) {
-      console.error(e);
+      queueAction({ type: 'time', endpoint: '/api/time', method: 'POST', payload });
+      alert(t('offlineSaved') || "Offline gespeichert!");
     }
   };
 
@@ -213,18 +336,41 @@ export default function Dashboard() {
 
   const handleUpdate = async () => {
     if (!checkFahrzeitReminder(editTravel)) return;
+    const payload = { 
+      action: 'update', 
+      startTime: editStart,
+      endTime: editEnd,
+      pauseHours: editPause, 
+      travelHours: editTravel, 
+      location: editLocation 
+    };
+
+    if (!navigator.onLine) {
+      if (entry) {
+        const updated = {
+          ...entry,
+          startTime: editStart,
+          endTime: editEnd,
+          pauseHours: parseFloat(editPause) || 0,
+          travelHours: parseFloat(editTravel) || 0,
+          location: editLocation,
+        };
+        setEntry(updated);
+        try {
+          localStorage.setItem("aquacon_today_entry", JSON.stringify(updated));
+        } catch (e) {}
+        queueAction({ type: 'time', endpoint: '/api/time', method: 'POST', payload });
+      }
+      setIsEditing(false);
+      alert(t('offlineSaved') || "Offline gespeichert!");
+      return;
+    }
+
     try {
       const res = await fetch('/api/time', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'update', 
-          startTime: editStart,
-          endTime: editEnd,
-          pauseHours: editPause, 
-          travelHours: editTravel, 
-          location: editLocation 
-        })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
@@ -233,6 +379,9 @@ export default function Dashboard() {
           setPause(data.pauseHours?.toString() || "0.5");
           setTravel(data.travelHours?.toString() || "0");
           setLocation(data.location || "");
+          try {
+            localStorage.setItem("aquacon_today_entry", JSON.stringify(data));
+          } catch (e) {}
         }
         setIsEditing(false);
         setRefreshCal(prev => prev + 1);
@@ -241,28 +390,46 @@ export default function Dashboard() {
         alert(err.error || "Fehler beim Speichern");
       }
     } catch (e) {
-      console.error(e);
+      queueAction({ type: 'time', endpoint: '/api/time', method: 'POST', payload });
+      setIsEditing(false);
+      alert(t('offlineSaved') || "Offline gespeichert!");
     }
   };
 
   const handleLeaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/leave', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: leaveType, startDate: leaveStart, endDate: leaveEnd })
-    });
-    
-    if (res.ok) {
-      alert(t('successApplied'));
+    const payload = { type: leaveType, startDate: leaveStart, endDate: leaveEnd };
+
+    if (!navigator.onLine) {
+      queueAction({ type: 'leave', endpoint: '/api/leave', method: 'POST', payload });
+      alert(t('offlineSaved') || "Offline gespeichert (Wird bei Verbindung synchronisiert)");
       setLeaveStart("");
       setLeaveEnd("");
-      fetchUserDetails();
-      setRefreshCal(prev => prev + 1);
-    } else {
-      const err = await res.json();
-      alert(err.error);
+      return;
     }
+
+    try {
+      const res = await fetch('/api/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        alert(t('successApplied'));
+        setLeaveStart("");
+        setLeaveEnd("");
+        fetchUserDetails();
+        setRefreshCal(prev => prev + 1);
+      } else {
+        const err = await res.json();
+        alert(err.error);
+      }
+    } catch (e) {
+      queueAction({ type: 'leave', endpoint: '/api/leave', method: 'POST', payload });
+      alert(t('offlineSaved') || "Offline gespeichert (Wird bei Verbindung synchronisiert)");
+      setLeaveStart("");
+      setLeaveEnd("");
   };
 
   const handleDeleteLeave = async (id: number) => {

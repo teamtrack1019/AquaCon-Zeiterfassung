@@ -29,9 +29,18 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
       if (res.ok) {
         const data = await res.json();
         setEntries(data);
+        try {
+          localStorage.setItem("aquacon_cached_history", JSON.stringify(data));
+        } catch (e) {}
       }
     } catch (e) {
-      console.error(e);
+      // Offline fallback: restore cached entries
+      try {
+        const cached = localStorage.getItem("aquacon_cached_history");
+        if (cached) {
+          setEntries(JSON.parse(cached));
+        }
+      } catch (err) {}
     } finally {
       setLoading(false);
     }
