@@ -87,6 +87,8 @@ export const dictionaries = {
     toastSyncing: "🔵 Synchronisiere Daten mit dem Server...",
     toastSyncSuccess: "✅ Erfolgreich synchronisiert! (Alle Daten aktuell)",
     toastDraftSaved: "💾 Änderungen wurden lokal gespeichert",
+    totalWorkingTime: "Gesamt Arbeitszeit",
+    totalTravelTime: "Gesamt Fahrzeit",
   },
   ru: {
     login: "Войти",
@@ -176,6 +178,8 @@ export const dictionaries = {
     toastSyncing: "🔵 Синхронизация данных с сервером...",
     toastSyncSuccess: "✅ Успешно синхронизировано! (Все данные обновлены)",
     toastDraftSaved: "💾 Изменения сохранены локально",
+    totalWorkingTime: "Общее рабочее время",
+    totalTravelTime: "Общее время в пути",
   }
 };
 export type Language = 'de' | 'ru';

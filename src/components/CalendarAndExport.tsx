@@ -139,6 +139,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     const tableRows: any[] = [];
     
     let totalMonthHours = 0;
+    let totalTravelHours = 0;
 
     displayedEntries.forEach(entry => {
       let locationText = entry.location || "-";
@@ -185,6 +186,12 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
       if (entry.totalHours) {
         totalMonthHours += entry.totalHours;
       }
+      if (entry.travelHours) {
+        const tr = parseFloat(entry.travelHours);
+        if (!isNaN(tr)) {
+          totalTravelHours += tr;
+        }
+      }
     });
 
     autoTable(doc, {
@@ -194,8 +201,9 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     });
 
     const finalY = (doc as any).lastAutoTable.finalY || 45;
-    doc.setFontSize(12);
-    doc.text(`${t('workingTime')}: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
+    doc.setFontSize(11);
+    doc.text(`${t('totalWorkingTime')}: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
+    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 14, finalY + 17);
 
     doc.save(`aquaCon_Zeiterfassung_${userName}.pdf`);
   };
@@ -362,10 +370,18 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
           {displayedEntries.length > 0 && (
             <tfoot className="bg-blue-50 text-sm">
               <tr className="font-bold border-t-2 border-blue-200">
-                <td colSpan={6} className="p-3 text-right text-gray-800">{t('totalHours')}:</td>
-                <td colSpan={2} className="p-3 text-blue-700 font-bold">
-                  {displayedEntries.reduce((sum, entry) => sum + (entry.totalHours || 0), 0).toFixed(2)} h
+                <td colSpan={5} className="p-3 text-right text-gray-800">
+                  <span className="font-bold">{t('totalHours')}:</span>
                 </td>
+                <td className="p-3 text-blue-800 font-bold">
+                  {displayedEntries.reduce((sum, entry) => sum + (parseFloat(entry.travelHours) || 0), 0).toFixed(1)} h
+                  <div className="text-[10px] text-gray-500 font-normal">{t('totalTravelTime')}</div>
+                </td>
+                <td className="p-3 text-blue-800 font-bold">
+                  {displayedEntries.reduce((sum, entry) => sum + (entry.totalHours || 0), 0).toFixed(2)} h
+                  <div className="text-[10px] text-gray-500 font-normal">{t('totalWorkingTime')}</div>
+                </td>
+                <td className="p-3"></td>
               </tr>
             </tfoot>
           )}
