@@ -7,19 +7,21 @@ export default function Header() {
   const { status, pendingCount, syncNow } = useSync();
 
   return (
-    <header className="bg-white text-slate-800 px-4 py-3 sm:py-4 shadow-sm border-b flex justify-between items-center gap-2 sticky top-0 z-30">
+    <header className="bg-white text-slate-800 px-4 py-3 sm:py-4 shadow-sm border-b flex justify-between items-center gap-3 sticky top-0 z-30">
       <div className="flex items-center gap-3">
-        {/* Yuvarlak Mavi Daire Logo */}
-        <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 shadow-md flex-shrink-0">
-          <span className="text-white font-bold text-[9px] sm:text-[10px] tracking-wide leading-none text-center">Aqua<br/>Con</span>
+        {/* Yuvarlak Mavi Daire Logo - Büyütüldü */}
+        <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-600 shadow-md flex-shrink-0">
+          <span className="text-white font-extrabold text-[11px] sm:text-xs tracking-wider leading-tight text-center">
+            Aqua<br />Con
+          </span>
         </div>
         <div className="text-base sm:text-lg font-bold text-blue-700 hidden sm:block">
           Zeiterfassung
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Network & Sync Status Badge (Dil seçiminin hemen solunda) */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        {/* Network & Sync Status Badge */}
         <button
           type="button"
           onClick={() => {
@@ -32,7 +34,7 @@ export default function Header() {
               ? 'Senkronize ediliyor...'
               : 'Online - Bağlantı aktif'
           }
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border shadow-sm transition-all flex-shrink-0 ${
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border shadow-sm transition-all flex-shrink-0 ${
             status === 'offline'
               ? 'bg-amber-50 text-amber-800 border-amber-300 ring-1 ring-amber-300'
               : status === 'syncing'
@@ -42,21 +44,24 @@ export default function Header() {
         >
           {status === 'offline' ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
-              <span>🟠 {t('offline')}{pendingCount > 0 ? ` (${pendingCount})` : ''}</span>
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              </span>
+              <span>{t('offline')}{pendingCount > 0 ? ` (${pendingCount})` : ''}</span>
             </>
           ) : status === 'syncing' ? (
             <>
-              <svg className="animate-spin h-3 w-3 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-3.5 w-3.5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
               </svg>
-              <span>🔵 {t('syncing')}{pendingCount > 0 ? ` (${pendingCount})` : ''}</span>
+              <span>{t('syncing')}{pendingCount > 0 ? ` (${pendingCount})` : ''}</span>
             </>
           ) : (
             <>
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>🟢 {t('online')}</span>
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+              <span>{t('online')}</span>
             </>
           )}
         </button>
@@ -65,10 +70,10 @@ export default function Header() {
         <select 
           value={lang} 
           onChange={(e) => setLang(e.target.value as 'de' | 'ru')}
-          className="bg-slate-100 text-slate-700 border border-slate-300 rounded-lg p-1.5 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-slate-100 text-slate-700 border border-slate-300 rounded-lg py-1.5 px-2.5 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
         >
-          <option value="de">🇩🇪 DE</option>
-          <option value="ru">🇷🇺 RU</option>
+          <option value="de">🇩🇪 Deutsch</option>
+          <option value="ru">🇷🇺 Русский</option>
         </select>
       </div>
     </header>
