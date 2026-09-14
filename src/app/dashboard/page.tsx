@@ -430,6 +430,7 @@ export default function Dashboard() {
       alert(t('offlineSaved') || "Offline gespeichert (Wird bei Verbindung synchronisiert)");
       setLeaveStart("");
       setLeaveEnd("");
+    }
   };
 
   const handleDeleteLeave = async (id: number) => {
