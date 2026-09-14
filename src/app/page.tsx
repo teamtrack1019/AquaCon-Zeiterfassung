@@ -1,19 +1,42 @@
 "use client";
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function Home() {
+  const { data: session, status } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
   const { t } = useLanguage();
 
+  useEffect(() => {
+    // If already authenticated, redirect immediately
+    if (status === "authenticated") {
+      if ((session?.user as any)?.role === 'ADMIN') {
+        router.replace("/admin");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    // Restore saved username if available
+    try {
+      const savedUser = localStorage.getItem("aquacon_saved_username");
+      if (savedUser) setUsername(savedUser);
+    } catch (e) {}
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      localStorage.setItem("aquacon_saved_username", username);
+    } catch (e) {}
     const res = await signIn("credentials", {
       username,
       password,
@@ -25,6 +48,14 @@ export default function Home() {
       router.push("/dashboard");
     }
   };
+
+  if (status === "loading" || status === "authenticated") {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-slate-500 font-medium">
+        Laden...
+      </div>
+    );
+  }
 
   return (
     <>

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -80,15 +80,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Already started" }, { status: 400 });
     }
     
-    // Create new entry
+    const finalPause = pauseHours !== undefined && !isNaN(parseFloat(pauseHours)) ? parseFloat(pauseHours) : 0.5;
+    const finalTravel = travelHours !== undefined && !isNaN(parseFloat(travelHours)) ? parseFloat(travelHours) : 0;
+
+    // Create new entry with submitted pause, travel and location
     entry = await prisma.timeEntry.create({
       data: {
         userId: user.id,
         date: today,
         startTime: now,
-        pauseHours: 0.5,
-        travelHours: 0,
-        location
+        pauseHours: finalPause,
+        travelHours: finalTravel,
+        location: location || ""
       }
     });
     

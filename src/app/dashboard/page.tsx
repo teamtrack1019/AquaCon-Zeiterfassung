@@ -79,6 +79,24 @@ export default function Dashboard() {
     }
   };
 
+  const getTodayStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+  };
+
+  const saveLocalDraft = (newLoc?: string, newTravel?: string, newPause?: string) => {
+    try {
+      const today = getTodayStr();
+      const draft = {
+        date: today,
+        location: newLoc !== undefined ? newLoc : location,
+        travel: newTravel !== undefined ? newTravel : travel,
+        pause: newPause !== undefined ? newPause : pause,
+      };
+      localStorage.setItem("aquacon_today_draft", JSON.stringify(draft));
+    } catch (e) {}
+  };
+
   const fetchEntry = async () => {
     try {
       const res = await fetch('/api/time');
@@ -89,11 +107,28 @@ export default function Dashboard() {
           setPause(data.pauseHours?.toString() || "0.5");
           setTravel(data.travelHours?.toString() || "0");
           setLocation(data.location || "");
-        } else if (data && data.isDraft) {
-          setEntry(null);
-          setLocation(data.location || "");
         } else {
           setEntry(null);
+          // Check if there is a local draft for today
+          let draftRestored = false;
+          try {
+            const savedDraft = localStorage.getItem("aquacon_today_draft");
+            if (savedDraft) {
+              const parsed = JSON.parse(savedDraft);
+              if (parsed.date === getTodayStr()) {
+                if (parsed.location !== undefined) setLocation(parsed.location);
+                if (parsed.travel !== undefined) setTravel(parsed.travel);
+                if (parsed.pause !== undefined) setPause(parsed.pause);
+                draftRestored = true;
+              }
+            }
+          } catch (e) {}
+
+          if (!draftRestored && data && data.isDraft) {
+            setLocation(data.location || "");
+            setTravel("0");
+            setPause("0.5");
+          }
         }
       }
     } catch (e) {
@@ -116,24 +151,28 @@ export default function Dashboard() {
   };
 
   const handleSaveInputs = async () => {
-    if (!entry) return;
+    saveLocalDraft(location, travel, pause);
     if (!checkFahrzeitReminder(travel)) return;
-    try {
-      const res = await fetch('/api/time', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update', id: entry.id, pauseHours: pause, travelHours: travel, location })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEntry(data);
-        setRefreshCal(prev => prev + 1);
-        alert(t('successApplied') || "Erfolgreich aktualisiert!");
-      } else {
-        alert("Fehler beim Speichern");
+    if (entry) {
+      try {
+        const res = await fetch('/api/time', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update', id: entry.id, pauseHours: pause, travelHours: travel, location })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setEntry(data);
+          setRefreshCal(prev => prev + 1);
+          alert(t('successApplied') || "Erfolgreich gespeichert!");
+        } else {
+          alert("Fehler beim Speichern");
+        }
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
+    } else {
+      alert(t('successApplied') || "Erfolgreich gespeichert!");
     }
   };
 
@@ -295,23 +334,29 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              <div className="mt-6 flex flex-wrap gap-4">
+              <div className="mt-6 flex flex-wrap gap-4 items-end">
                 <div>
                   <label className="block text-sm font-semibold mb-1">{t('pause')}</label>
                   <input 
                     type="number" 
                     value={pause}
-                    onChange={e => setPause(e.target.value)}
+                    onChange={e => {
+                      setPause(e.target.value);
+                      saveLocalDraft(location, travel, e.target.value);
+                    }}
                     step="0.5" 
                     className="border p-2 rounded w-32" 
                   />
                 </div>
-                                <div>
+                <div>
                   <label className="block text-sm font-semibold mb-1">{t('travel')}</label>
                   <input 
                     type="number" 
                     value={travel}
-                    onChange={e => setTravel(e.target.value)}
+                    onChange={e => {
+                      setTravel(e.target.value);
+                      saveLocalDraft(location, e.target.value, pause);
+                    }}
                     step="0.5" 
                     className={`border p-2 rounded w-32 ${isReminderDay ? 'border-orange-500 bg-orange-50' : ''}`} 
                   />
@@ -326,10 +371,22 @@ export default function Dashboard() {
                   <input 
                     type="text" 
                     value={location}
-                    onChange={e => setLocation(e.target.value)}
+                    onChange={e => {
+                      setLocation(e.target.value);
+                      saveLocalDraft(e.target.value, travel, pause);
+                    }}
                     placeholder="..."
                     className="border p-2 rounded w-full" 
                   />
+                </div>
+                <div>
+                  <button 
+                    type="button"
+                    onClick={handleSaveInputs}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-sm"
+                  >
+                    {t('save')}
+                  </button>
                 </div>
               </div>
 
