@@ -82,6 +82,11 @@ export const dictionaries = {
     pullToRefresh: "Zum Aktualisieren nach unten ziehen",
     releaseToRefresh: "Loslassen zum Aktualisieren",
     refreshing: "Wird aktualisiert...",
+    toastOnline: "🟢 Wieder online (Verbindung hergestellt)",
+    toastOffline: "🟠 Keine Internetverbindung (Offline-Modus aktiv)",
+    toastSyncing: "🔵 Synchronisiere Daten mit dem Server...",
+    toastSyncSuccess: "✅ Erfolgreich synchronisiert! (Alle Daten aktuell)",
+    toastDraftSaved: "💾 Änderungen wurden lokal gespeichert",
   },
   ru: {
     login: "Войти",
@@ -166,6 +171,11 @@ export const dictionaries = {
     pullToRefresh: "Потяните вниз для обновления",
     releaseToRefresh: "Отпустите для обновления",
     refreshing: "Обновление...",
+    toastOnline: "🟢 Снова онлайн (Соединение восстановлено)",
+    toastOffline: "🟠 Нет подключения к интернету (Офлайн-режим)",
+    toastSyncing: "🔵 Синхронизация данных с сервером...",
+    toastSyncSuccess: "✅ Успешно синхронизировано! (Все данные обновлены)",
+    toastDraftSaved: "💾 Изменения сохранены локально",
   }
 };
 export type Language = 'de' | 'ru';
