@@ -212,7 +212,7 @@ export default function AdminDashboard() {
     const doc = new jsPDF();
     
     doc.setFontSize(18);
-    doc.text("aquaCon Zeiterfassung", 14, 22);
+    doc.text("AquaCon Zeiterfassung", 14, 22);
     
     doc.setFontSize(11);
     doc.text(`Mitarbeiter: ${selectedUser.username}`, 14, 30);
@@ -223,6 +223,7 @@ export default function AdminDashboard() {
     const tableRows: any[] = [];
     
     let totalMonthHours = 0;
+    let totalTravelHours = 0;
 
     userEntries.forEach(entry => {
       let locationText = entry.location || "-";
@@ -269,6 +270,12 @@ export default function AdminDashboard() {
       if (entry.totalHours) {
         totalMonthHours += entry.totalHours;
       }
+      if (entry.travelHours) {
+        const tr = parseFloat(entry.travelHours);
+        if (!isNaN(tr)) {
+          totalTravelHours += tr;
+        }
+      }
     });
 
     autoTable(doc, {
@@ -278,10 +285,11 @@ export default function AdminDashboard() {
     });
 
     const finalY = (doc as any).lastAutoTable.finalY || 45;
-    doc.setFontSize(12);
-    doc.text(`Gesamte Arbeitsstunden: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
+    doc.setFontSize(11);
+    doc.text(`${t('totalWorkingTime')}: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
+    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 100, finalY + 10);
 
-    doc.save(`aquaCon_Zeiterfassung_${selectedUser.username}.pdf`);
+    doc.save(`AquaCon_Zeiterfassung_${selectedUser.username}.pdf`);
   };
 
   if (status === "loading" || (status === "authenticated" && (session?.user as any)?.role !== 'ADMIN')) {

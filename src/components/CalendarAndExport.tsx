@@ -127,7 +127,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     
     // Header
     doc.setFontSize(18);
-    doc.text("aquaCon Zeiterfassung", 14, 22);
+    doc.text("AquaCon Zeiterfassung", 14, 22);
     
     doc.setFontSize(11);
     doc.text(`Mitarbeiter: ${userName}`, 14, 30);
@@ -205,7 +205,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     doc.text(`${t('totalWorkingTime')}: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
     doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 100, finalY + 10);
 
-    doc.save(`aquaCon_Zeiterfassung_${userName}.pdf`);
+    doc.save(`AquaCon_Zeiterfassung_${userName}.pdf`);
   };
 
   if (loading) return <div className="mt-8 text-gray-500">Laden...</div>;
