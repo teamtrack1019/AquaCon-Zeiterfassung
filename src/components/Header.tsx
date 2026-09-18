@@ -9,12 +9,12 @@ export default function Header() {
   return (
     <header className="bg-white text-slate-800 px-4 py-3 sm:py-4 shadow-sm border-b flex justify-between items-center gap-3 sticky top-0 z-30">
       <div className="flex items-center gap-3">
-        {/* Yuvarlak Mavi Daire Logo - Büyütüldü */}
-        <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-600 shadow-md flex-shrink-0">
-          <span className="text-white font-extrabold text-[11px] sm:text-xs tracking-wider leading-tight text-center">
-            Aqua<br />Con
-          </span>
-        </div>
+        {/* Yuvarlak Mavi Daire Logo */}
+        <img 
+          src="/logo.svg" 
+          alt="AquaCon Logo" 
+          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md flex-shrink-0 object-contain hover:scale-105 transition-transform" 
+        />
         <div className="text-base sm:text-lg font-bold text-blue-700 hidden sm:block">
           Zeiterfassung
         </div>
