@@ -114,8 +114,8 @@ export async function POST(req: Request) {
     const finalPause = parseFloat(pauseHours) || 0;
     const finalTravel = parseFloat(travelHours) || 0;
 
-    // Fahrzeit is NO LONGER ADDED to totalHours, as it is already included in the work time.
-    const totalHours = diffHours - finalPause;
+    // Net Arbeitszeit = Work duration - Pause - Fahrzeit (Fahrzeit is tracked separately)
+    const totalHours = Math.max(0, diffHours - finalPause - finalTravel);
 
     entry = await prisma.timeEntry.update({
       where: { id: entry.id },
@@ -150,8 +150,8 @@ export async function POST(req: Request) {
         let diffMins = stopMins - startMins;
         if (diffMins < 0) diffMins += 24 * 60;
         let diffHours = diffMins / 60;
-        // Fahrzeit is not added!
-        totalHours = parseFloat((diffHours - finalPause).toFixed(2));
+        // Net Arbeitszeit = Work duration - Pause - Fahrzeit
+        totalHours = parseFloat(Math.max(0, diffHours - finalPause - finalTravel).toFixed(2));
     }
 
     entry = await prisma.timeEntry.update({

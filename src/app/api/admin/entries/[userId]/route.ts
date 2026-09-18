@@ -94,17 +94,37 @@ export async function GET(req: Request, { params }: { params: { userId: string }
     Object.assign(holidaysMap, h);
   });
 
+  function computeTotalHours(startTime: string | null, endTime: string | null, pauseHours: any, travelHours: any): number | null {
+    if (!startTime || !endTime || startTime === '-' || endTime === '-') return null;
+    const startParts = startTime.split(':');
+    const stopParts = endTime.split(':');
+    if (startParts.length < 2 || stopParts.length < 2) return null;
+    const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+    const stopMins = parseInt(stopParts[0]) * 60 + parseInt(stopParts[1]);
+    let diffMins = stopMins - startMins;
+    if (diffMins < 0) diffMins += 24 * 60;
+    const diffHours = diffMins / 60;
+    const finalPause = parseFloat(pauseHours) || 0;
+    const finalTravel = parseFloat(travelHours) || 0;
+    return parseFloat(Math.max(0, diffHours - finalPause - finalTravel).toFixed(2));
+  }
+
   // Process raw entries and mark if worked on a holiday
   const entries: any[] = rawEntries.map(e => {
     const holidayName = holidaysMap[e.date];
+    const calculatedTotal = computeTotalHours(e.startTime, e.endTime, e.pauseHours, e.travelHours);
+    const entryObj = {
+      ...e,
+      totalHours: calculatedTotal !== null ? calculatedTotal : e.totalHours,
+    };
     if (holidayName) {
       return {
-        ...e,
+        ...entryObj,
         isFeiertag: true,
         feiertagName: holidayName
       };
     }
-    return e;
+    return entryObj;
   });
 
   const existingDates = new Set(entries.map(e => e.date));

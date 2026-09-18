@@ -275,13 +275,14 @@ export default function Dashboard() {
           if (diffMins < 0) diffMins += 24 * 60;
           const diffHours = diffMins / 60;
           const finalPause = parseFloat(pause) || 0;
-          const totalHours = parseFloat((diffHours - finalPause).toFixed(2));
+          const finalTravel = parseFloat(travel) || 0;
+          const totalHours = parseFloat(Math.max(0, diffHours - finalPause - finalTravel).toFixed(2));
 
           const offlineEntry = {
             ...entry,
             endTime: now,
             pauseHours: finalPause,
-            travelHours: parseFloat(travel) || 0,
+            travelHours: finalTravel,
             location,
             totalHours,
             isOffline: true,
