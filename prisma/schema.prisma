@@ -15,9 +15,10 @@ model User {
   role     String   @default("WORKER") // "ADMIN" or "WORKER"
   
   // İzin ve Tatil Takibi
-  annualLeaveDays      Float @default(30.0) // Admin belirleyecek
-  carriedOverLeaveDays Float @default(0.0)  // Geçen yıldan devreden
-  lastCarryOverYear    Int   @default(2026) // Hangi yılda devir yapıldı
+  annualLeaveDays      Float   @default(30.0) // Admin belirleyecek
+  carriedOverLeaveDays Float   @default(0.0)  // Geçen yıldan devreden
+  lastCarryOverYear    Int     @default(2026) // Hangi yılda devir yapıldı
+  entryDate            String? // İşe başlangıç tarihi YYYY-MM-DD
   
   timeEntries   TimeEntry[]
   leaveRequests LeaveRequest[]

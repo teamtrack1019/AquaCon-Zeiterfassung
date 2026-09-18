@@ -52,9 +52,26 @@ export async function GET(req: Request) {
     }
   });
 
-  // Collect relevant years
+  // Determine earliest active date for the employee
+  let earliestDate = user.entryDate || (user.createdAt ? user.createdAt.toISOString().substring(0, 10) : '2026-01-01');
+  rawEntries.forEach(e => {
+    if (e.date && e.date < earliestDate) {
+      earliestDate = e.date;
+    }
+  });
+  approvedLeaves.forEach(l => {
+    if (l.startDate && l.startDate < earliestDate) {
+      earliestDate = l.startDate;
+    }
+  });
+
+  const startYear = parseInt(earliestDate.substring(0, 4)) || new Date().getFullYear();
   const currentYear = new Date().getFullYear();
-  const yearsSet = new Set<number>([currentYear - 1, currentYear, currentYear + 1]);
+
+  const yearsSet = new Set<number>();
+  for (let y = startYear; y <= currentYear; y++) {
+    yearsSet.add(y);
+  }
   rawEntries.forEach(e => {
     if (e.date) {
       const y = parseInt(e.date.substring(0, 4));
@@ -119,7 +136,8 @@ export async function GET(req: Request) {
 
   // Generate entries for public holidays (Feiertage) on workdays where user didn't work and didn't take leave
   Object.entries(holidaysMap).forEach(([holidayDate, holidayName]) => {
-    if (!existingDates.has(holidayDate)) {
+    // Only generate holidays on or after the worker's start date
+    if (holidayDate >= earliestDate && !existingDates.has(holidayDate)) {
       const [y, m, d] = holidayDate.split('-').map(Number);
       const dayOfWeek = new Date(y, m - 1, d).getDay();
       // Add if Monday-Friday

@@ -20,6 +20,7 @@ export async function GET(req: Request) {
       annualLeaveDays: true,
       carriedOverLeaveDays: true,
       lastCarryOverYear: true,
+      entryDate: true,
       leaveRequests: {
         where: { status: 'APPROVED' }
       }
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if ((session?.user as any)?.role !== 'ADMIN') return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { username, password, role, annualLeaveDays } = await req.json();
+  const { username, password, role, annualLeaveDays, entryDate } = await req.json();
 
   if (!username || !password) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -48,9 +49,10 @@ export async function POST(req: Request) {
       username,
       password: password,
       role: 'WORKER',
-      annualLeaveDays: annualLeaveDays ? parseFloat(annualLeaveDays.toString().replace(',', '.')) : 30
+      annualLeaveDays: annualLeaveDays ? parseFloat(annualLeaveDays.toString().replace(',', '.')) : 30,
+      entryDate: entryDate || null
     },
-    select: { id: true, username: true, role: true, annualLeaveDays: true }
+    select: { id: true, username: true, role: true, annualLeaveDays: true, entryDate: true }
   });
 
   return NextResponse.json(user);

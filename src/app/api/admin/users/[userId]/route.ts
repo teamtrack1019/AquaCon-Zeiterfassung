@@ -29,7 +29,7 @@ export async function PATCH(req: Request, { params }: { params: { userId: string
   if ((session?.user as any)?.role !== 'ADMIN') return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = parseInt(params.userId);
-  const { newPassword, annualLeaveDays, carriedOverLeaveDays } = await req.json();
+  const { newPassword, annualLeaveDays, carriedOverLeaveDays, entryDate } = await req.json();
 
   const dataToUpdate: any = {};
 
@@ -44,6 +44,10 @@ export async function PATCH(req: Request, { params }: { params: { userId: string
 
   if (carriedOverLeaveDays !== undefined) {
     dataToUpdate.carriedOverLeaveDays = parseFloat(carriedOverLeaveDays.toString().replace(',', '.'));
+  }
+
+  if (entryDate !== undefined) {
+    dataToUpdate.entryDate = entryDate || null;
   }
 
   if (Object.keys(dataToUpdate).length > 0) {

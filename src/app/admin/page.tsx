@@ -3,7 +3,7 @@ import { useSession, signOut } from "next-auth/react";
 import Header from "@/components/Header";
 import { useLanguage } from "@/context/LanguageContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -15,15 +15,22 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([]);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [workerEntryDate, setWorkerEntryDate] = useState("");
   
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userEntries, setUserEntries] = useState<any[]>([]);
+  const [adminSelectedMonth, setAdminSelectedMonth] = useState("");
   
   const [adminNewPassword, setAdminNewPassword] = useState("");
 
   const [annualLeaveDays, setAnnualLeaveDays] = useState("30");
   const [pendingLeaves, setPendingLeaves] = useState<any[]>([]);
   const [showLeavesModal, setShowLeavesModal] = useState(false);
+
+  useEffect(() => {
+    const now = new Date();
+    setAdminSelectedMonth(`${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -64,13 +71,14 @@ export default function AdminDashboard() {
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: newUsername, password: newPassword, annualLeaveDays })
+      body: JSON.stringify({ username: newUsername, password: newPassword, annualLeaveDays, entryDate: workerEntryDate || null })
     });
 
     if (res.ok) {
       setNewUsername("");
       setNewPassword("");
       setAnnualLeaveDays("30");
+      setWorkerEntryDate("");
       fetchUsers();
       alert("Mitarbeiter erfolgreich erstellt!");
     } else {
@@ -195,6 +203,49 @@ export default function AdminDashboard() {
     }
   };
 
+  const formatDbDate = (d?: string) => {
+    if (!d) return "-";
+    const p = d.split('-');
+    return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : d;
+  };
+
+  const formatMonthLabel = (ym: string) => {
+    const parts = ym.split('-');
+    return `${parts[1]}/${parts[0]}`;
+  };
+
+  const changeWorkerEntryDate = async (userId: number, username: string, currentEntryDate?: string) => {
+    const newVal = prompt(`${t('entryDate')} für '${username}' ändern (z.B. 03.08.2026 oder 2026-08-03):`, currentEntryDate ? formatDbDate(currentEntryDate) : "");
+    if (newVal === null) return;
+    
+    let formatted = newVal.trim();
+    if (formatted.includes('.')) {
+      const parts = formatted.split('.');
+      if (parts.length === 3) {
+        formatted = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+
+    if (formatted && !/^\d{4}-\d{2}-\d{2}$/.test(formatted)) {
+      return alert("Ungültiges Datumsformat. Bitte TT.MM.JJJJ oder JJJJ-MM-TT verwenden.");
+    }
+
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryDate: formatted || null })
+    });
+    
+    if (res.ok) {
+      fetchUsers();
+      const updatedUser = { ...selectedUser, entryDate: formatted || null };
+      setSelectedUser(updatedUser);
+      viewUserEntries(updatedUser);
+    } else {
+      alert("Fehler beim Speichern");
+    }
+  };
+
   const formatDateWithDay = (dateStr: string) => {
     if (!dateStr) return "-";
     const parts = dateStr.split('-');
@@ -206,8 +257,24 @@ export default function AdminDashboard() {
     return dateStr;
   };
 
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    const now = new Date();
+    set.add(`${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`);
+    userEntries.forEach(e => {
+      if (e.date) {
+        set.add(e.date.substring(0, 7));
+      }
+    });
+    return Array.from(set).sort().reverse();
+  }, [userEntries]);
+
+  const displayedUserEntries = useMemo(() => {
+    return userEntries.filter(e => e.date && e.date.startsWith(adminSelectedMonth));
+  }, [userEntries, adminSelectedMonth]);
+
   const generateAdminPDF = () => {
-    if (!selectedUser || userEntries.length === 0) return;
+    if (!selectedUser || displayedUserEntries.length === 0) return;
     
     const doc = new jsPDF();
     
@@ -225,7 +292,7 @@ export default function AdminDashboard() {
     let totalMonthHours = 0;
     let totalTravelHours = 0;
 
-    userEntries.forEach(entry => {
+    displayedUserEntries.forEach(entry => {
       let locationText = entry.location || "-";
       let startText = entry.startTime || "-";
       let endText = entry.endTime || "-";
@@ -452,6 +519,15 @@ export default function AdminDashboard() {
                     required
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t('entryDateLabel')}</label>
+                  <input 
+                    type="date" 
+                    value={workerEntryDate}
+                    onChange={e => setWorkerEntryDate(e.target.value)}
+                    className="border border-gray-300 w-full p-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700" 
+                  />
+                </div>
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl font-bold transition shadow-sm">
                   {t('saveBtn')}
                 </button>
@@ -522,9 +598,20 @@ export default function AdminDashboard() {
             {selectedUser ? (
               <div className="bg-white shadow-sm hover:shadow-md transition-shadow p-5 sm:p-6 rounded-2xl border border-gray-100 border-t-4 border-t-green-500 h-full">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                    {t('timesOf')} <span className="text-blue-600">{selectedUser.username}</span>
-                  </h2>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      {t('timesOf')} <span className="text-blue-600">{selectedUser.username}</span>
+                    </h2>
+                    <select 
+                      value={adminSelectedMonth} 
+                      onChange={e => setAdminSelectedMonth(e.target.value)}
+                      className="border border-gray-300 p-1.5 rounded-xl bg-gray-50 text-sm sm:text-base font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {availableMonths.map(ym => (
+                        <option key={ym} value={ym}>{formatMonthLabel(ym)}</option>
+                      ))}
+                    </select>
+                  </div>
                   <button 
                     onClick={generateAdminPDF} 
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition shadow-sm self-start sm:self-auto"
@@ -533,8 +620,21 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                {/* Show Leave Balances */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                {/* Show Leave Balances & Start Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <span className="block text-xs font-medium text-gray-500 mb-1">{t('entryDate')}</span>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-sm sm:text-base text-gray-900">{formatDbDate(selectedUser.entryDate)}</span>
+                      <button 
+                        onClick={() => changeWorkerEntryDate(selectedUser.id, selectedUser.username, selectedUser.entryDate)}
+                        className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded hover:bg-purple-100 font-medium transition"
+                      >
+                        {t('change')}
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                     <span className="block text-xs font-medium text-gray-500 mb-1">{t('annualLeave')}</span>
                     <div className="flex items-center justify-between">
@@ -589,10 +689,10 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="text-sm divide-y divide-gray-100">
-                      {userEntries.length === 0 ? (
+                      {displayedUserEntries.length === 0 ? (
                         <tr><td colSpan={7} className="p-6 text-center text-gray-500">{t('noTimesYet')}</td></tr>
                       ) : (
-                        userEntries.map((e: any) => {
+                        displayedUserEntries.map((e: any) => {
                           const formattedDate = formatDateWithDay(e.date);
 
                           // Public Holiday without work
@@ -671,12 +771,17 @@ export default function AdminDashboard() {
                         })
                       )}
                     </tbody>
-                    {userEntries.length > 0 && (
+                    {displayedUserEntries.length > 0 && (
                       <tfoot className="bg-blue-50 text-sm">
-                        <tr>
-                          <td colSpan={6} className="p-3 text-right font-bold text-gray-800">{t('totalHoursLabel')}</td>
-                          <td className="p-3 font-bold text-blue-700">
-                            {userEntries.reduce((sum, e) => sum + (e.totalHours || 0), 0).toFixed(2)} h
+                        <tr className="font-bold border-t-2 border-blue-200">
+                          <td colSpan={5} className="p-3 text-right text-gray-800 font-bold">{t('totalHours')}:</td>
+                          <td className="p-3 text-blue-800 font-bold">
+                            {displayedUserEntries.reduce((sum, e) => sum + (parseFloat(e.travelHours) || 0), 0).toFixed(1)} h
+                            <div className="text-[10px] text-gray-500 font-normal">{t('totalTravelTime')}</div>
+                          </td>
+                          <td className="p-3 text-blue-800 font-bold">
+                            {displayedUserEntries.reduce((sum, e) => sum + (e.totalHours || 0), 0).toFixed(2)} h
+                            <div className="text-[10px] text-gray-500 font-normal">{t('totalWorkingTime')}</div>
                           </td>
                         </tr>
                       </tfoot>
