@@ -156,10 +156,10 @@ export default function AdminDashboard() {
   };
 
   const changeWorkerLeave = async (userId: number, username: string, currentDays: number) => {
-    const newVal = prompt(`Jahresurlaub für '${username}' ändern:`, currentDays.toString());
+    const newVal = prompt(`Jahresurlaub für '${username}' ändern (z.B. 12.5 oder 12,5):`, currentDays.toString());
     if (newVal === null) return;
     
-    const parsed = parseInt(newVal);
+    const parsed = parseFloat(newVal.replace(',', '.'));
     if (isNaN(parsed) || parsed < 0) return alert("Ungültige Anzahl");
 
     const res = await fetch(`/api/admin/users/${userId}`, {
@@ -176,10 +176,10 @@ export default function AdminDashboard() {
   };
 
   const changeWorkerCarriedLeave = async (userId: number, username: string, currentDays: number) => {
-    const newVal = prompt(`${t('lastYearRest')} für '${username}' ${t('change')}:`, currentDays.toString());
+    const newVal = prompt(`${t('lastYearRest')} für '${username}' ${t('change')} (z.B. 2.5 oder 2,5):`, currentDays.toString());
     if (newVal === null) return;
     
-    const parsed = parseInt(newVal);
+    const parsed = parseFloat(newVal.replace(',', '.'));
     if (isNaN(parsed) || parsed < 0) return alert("Ungültige Anzahl");
 
     const res = await fetch(`/api/admin/users/${userId}`, {
@@ -445,6 +445,7 @@ export default function AdminDashboard() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1">{t('annualLeaveDaysLabel')}</label>
                   <input 
                     type="number" 
+                    step="0.5"
                     value={annualLeaveDays}
                     onChange={e => setAnnualLeaveDays(e.target.value)}
                     className="border border-gray-300 w-full p-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" 

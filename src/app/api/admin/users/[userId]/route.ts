@@ -39,11 +39,11 @@ export async function PATCH(req: Request, { params }: { params: { userId: string
   }
 
   if (annualLeaveDays !== undefined) {
-    dataToUpdate.annualLeaveDays = parseInt(annualLeaveDays);
+    dataToUpdate.annualLeaveDays = parseFloat(annualLeaveDays.toString().replace(',', '.'));
   }
 
   if (carriedOverLeaveDays !== undefined) {
-    dataToUpdate.carriedOverLeaveDays = parseInt(carriedOverLeaveDays);
+    dataToUpdate.carriedOverLeaveDays = parseFloat(carriedOverLeaveDays.toString().replace(',', '.'));
   }
 
   if (Object.keys(dataToUpdate).length > 0) {

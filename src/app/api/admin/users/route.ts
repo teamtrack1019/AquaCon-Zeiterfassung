@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       username,
       password: password,
       role: 'WORKER',
-      annualLeaveDays: annualLeaveDays ? parseInt(annualLeaveDays) : 30
+      annualLeaveDays: annualLeaveDays ? parseFloat(annualLeaveDays.toString().replace(',', '.')) : 30
     },
     select: { id: true, username: true, role: true, annualLeaveDays: true }
   });

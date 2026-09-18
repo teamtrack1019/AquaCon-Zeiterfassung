@@ -15,9 +15,9 @@ model User {
   role     String   @default("WORKER") // "ADMIN" or "WORKER"
   
   // İzin ve Tatil Takibi
-  annualLeaveDays      Int @default(30) // Admin belirleyecek
-  carriedOverLeaveDays Int @default(0)  // Geçen yıldan devreden
-  lastCarryOverYear    Int @default(2026) // Hangi yılda devir yapıldı
+  annualLeaveDays      Float @default(30.0) // Admin belirleyecek
+  carriedOverLeaveDays Float @default(0.0)  // Geçen yıldan devreden
+  lastCarryOverYear    Int   @default(2026) // Hangi yılda devir yapıldı
   
   timeEntries   TimeEntry[]
   leaveRequests LeaveRequest[]
@@ -31,7 +31,7 @@ model LeaveRequest {
   type        String   // "URLAUB" or "KRANK"
   startDate   String   // "YYYY-MM-DD"
   endDate     String   // "YYYY-MM-DD"
-  daysCount   Int      // Hesaplanmış gün (hafta sonu hariç)
+  daysCount   Float    // Hesaplanmış gün (hafta sonu hariç)
   status      String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
   createdAt   DateTime @default(now())
 }
