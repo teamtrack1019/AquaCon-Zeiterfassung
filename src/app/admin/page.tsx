@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { calculateZeitkonto } from "@/lib/zeitkonto";
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -275,6 +276,26 @@ export default function AdminDashboard() {
     return userEntries.filter(e => e.date && e.date.startsWith(adminSelectedMonth));
   }, [userEntries, adminSelectedMonth]);
 
+  const adminZeitkontoData = useMemo(() => {
+    return calculateZeitkonto(userEntries);
+  }, [userEntries]);
+
+  const currentAdminMonthZK = useMemo(() => {
+    if (adminZeitkontoData.months[adminSelectedMonth]) {
+      return adminZeitkontoData.months[adminSelectedMonth];
+    }
+    const gross = displayedUserEntries.reduce((sum, e) => sum + (e.totalHours || 0), 0);
+    const availableCap = Math.max(0, 200 - adminZeitkontoData.currentBalance);
+    const deduction = gross > 0 ? Math.min(5.0, availableCap) : 0;
+    return {
+      month: adminSelectedMonth,
+      grossHours: parseFloat(gross.toFixed(2)),
+      deduction: parseFloat(deduction.toFixed(2)),
+      netHours: parseFloat(Math.max(0, gross - deduction).toFixed(2)),
+      cumulativeBalance: parseFloat(Math.min(200, adminZeitkontoData.currentBalance + deduction).toFixed(2)),
+    };
+  }, [adminZeitkontoData, adminSelectedMonth, displayedUserEntries]);
+
   const generateAdminPDF = () => {
     if (!selectedUser || displayedUserEntries.length === 0) return;
     
@@ -354,9 +375,27 @@ export default function AdminDashboard() {
     });
 
     const finalY = (doc as any).lastAutoTable.finalY || 45;
-    doc.setFontSize(11);
-    doc.text(`${t('totalWorkingTime')}: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
-    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 100, finalY + 10);
+    doc.setFontSize(10);
+    
+    let curY = finalY + 10;
+    doc.text(`${t('grossWorkingTime')}: ${currentAdminMonthZK.grossHours.toFixed(2)} h`, 14, curY);
+    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 110, curY);
+
+    if (currentAdminMonthZK.deduction > 0) {
+      curY += 6;
+      doc.setTextColor(180, 83, 9);
+      doc.text(`Arbeitszeitkonto: -${currentAdminMonthZK.deduction.toFixed(2)} h`, 14, curY);
+      
+      curY += 6;
+      doc.setTextColor(16, 185, 129);
+      doc.text(`${t('netWorkingTime')}: ${currentAdminMonthZK.netHours.toFixed(2)} h`, 14, curY);
+      doc.setTextColor(0, 0, 0);
+    }
+
+    curY += 7;
+    doc.setTextColor(30, 58, 138);
+    doc.text(`${t('bestandZeitkonto')}: ${currentAdminMonthZK.cumulativeBalance.toFixed(2)} / 200.00 h`, 14, curY);
+    doc.setTextColor(0, 0, 0);
 
     doc.save(`AquaCon_Zeiterfassung_${selectedUser.username}.pdf`);
   };
@@ -660,8 +699,8 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
-                {/* Show Leave Balances & Start Date */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                {/* Show Leave Balances, Start Date & Zeitkonto */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                   <div className="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                     <span className="block text-xs font-medium text-gray-500 mb-1">{t('entryDate')}</span>
                     <div className="flex items-center justify-between">
@@ -713,6 +752,21 @@ export default function AdminDashboard() {
                       </div>
                     );
                   })()}
+
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-200 shadow-sm">
+                    <span className="block text-xs font-bold text-blue-900 mb-1">⏱️ {t('bestandZeitkonto')}</span>
+                    <div className="flex items-baseline justify-between">
+                      <span className="font-extrabold text-base text-indigo-700">
+                        {adminZeitkontoData.currentBalance.toFixed(1)} <span className="text-xs font-semibold text-gray-500">/ 200 h</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-1.5 mt-2 overflow-hidden">
+                      <div 
+                        className="bg-indigo-600 h-1.5 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, (adminZeitkontoData.currentBalance / 200) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -814,14 +868,28 @@ export default function AdminDashboard() {
                     {displayedUserEntries.length > 0 && (
                       <tfoot className="bg-blue-50 text-sm">
                         <tr className="font-bold border-t-2 border-blue-200">
-                          <td colSpan={5} className="p-3 text-right text-gray-800 font-bold">{t('totalHours')}:</td>
-                          <td className="p-3 text-blue-800 font-bold">
-                            {displayedUserEntries.reduce((sum, e) => sum + (parseFloat(e.travelHours) || 0), 0).toFixed(1)} h
+                          <td colSpan={5} className="p-3 text-right text-gray-800 align-top">
+                            <span className="font-bold">{t('totalHours')}:</span>
+                          </td>
+                          <td className="p-3 text-blue-800 font-bold align-top">
+                            <div>{displayedUserEntries.reduce((sum, e) => sum + (parseFloat(e.travelHours) || 0), 0).toFixed(1)} h</div>
                             <div className="text-[10px] text-gray-500 font-normal">{t('totalTravelTime')}</div>
                           </td>
-                          <td className="p-3 text-blue-800 font-bold">
-                            {displayedUserEntries.reduce((sum, e) => sum + (e.totalHours || 0), 0).toFixed(2)} h
-                            <div className="text-[10px] text-gray-500 font-normal">{t('totalWorkingTime')}</div>
+                          <td className="p-3 text-blue-800 font-bold align-top">
+                            <div>{currentAdminMonthZK.grossHours.toFixed(2)} h</div>
+                            <div className="text-[10px] text-gray-500 font-normal">{t('grossWorkingTime')}</div>
+                            
+                            {currentAdminMonthZK.deduction > 0 && (
+                              <>
+                                <div className="text-amber-700 text-xs font-semibold mt-1 pt-1 border-t border-blue-200">
+                                  -{currentAdminMonthZK.deduction.toFixed(1)} h {t('zeitkontoTransfer')}
+                                </div>
+                                <div className="text-emerald-700 font-extrabold text-sm mt-0.5">
+                                  = {currentAdminMonthZK.netHours.toFixed(2)} h
+                                  <div className="text-[10px] text-emerald-600 font-normal">{t('netWorkingTime')}</div>
+                                </div>
+                              </>
+                            )}
                           </td>
                         </tr>
                       </tfoot>

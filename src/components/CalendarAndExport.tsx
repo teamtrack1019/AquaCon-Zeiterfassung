@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { calculateZeitkonto } from "@/lib/zeitkonto";
 
 export default function CalendarAndExport({ userName, refreshTrigger }: { userName: string, refreshTrigger?: number }) {
   const { t } = useLanguage();
@@ -45,6 +46,30 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
       setLoading(false);
     }
   };
+
+  const zeitkontoData = useMemo(() => {
+    return calculateZeitkonto(entries);
+  }, [entries]);
+
+  const displayedEntries = useMemo(() => {
+    return entries.filter(e => e.date && e.date.startsWith(selectedMonth));
+  }, [entries, selectedMonth]);
+
+  const currentMonthZK = useMemo(() => {
+    if (zeitkontoData.months[selectedMonth]) {
+      return zeitkontoData.months[selectedMonth];
+    }
+    const gross = displayedEntries.reduce((sum, e) => sum + (e.totalHours || 0), 0);
+    const availableCap = Math.max(0, 200 - zeitkontoData.currentBalance);
+    const deduction = gross > 0 ? Math.min(5.0, availableCap) : 0;
+    return {
+      month: selectedMonth,
+      grossHours: parseFloat(gross.toFixed(2)),
+      deduction: parseFloat(deduction.toFixed(2)),
+      netHours: parseFloat(Math.max(0, gross - deduction).toFixed(2)),
+      cumulativeBalance: parseFloat(Math.min(200, zeitkontoData.currentBalance + deduction).toFixed(2)),
+    };
+  }, [zeitkontoData, selectedMonth, displayedEntries]);
 
   const handleEditClick = (entry: any) => {
     setEditingId(entry.id);
@@ -89,10 +114,6 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
       alert("Fehler beim Speichern");
     }
   };
-
-  const displayedEntries = useMemo(() => {
-    return entries.filter(e => e.date && e.date.startsWith(selectedMonth));
-  }, [entries, selectedMonth]);
 
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
@@ -201,9 +222,27 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     });
 
     const finalY = (doc as any).lastAutoTable.finalY || 45;
-    doc.setFontSize(11);
-    doc.text(`${t('totalWorkingTime')}: ${totalMonthHours.toFixed(2)} h`, 14, finalY + 10);
-    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 100, finalY + 10);
+    doc.setFontSize(10);
+    
+    let curY = finalY + 10;
+    doc.text(`${t('grossWorkingTime')}: ${currentMonthZK.grossHours.toFixed(2)} h`, 14, curY);
+    doc.text(`${t('totalTravelTime')}: ${totalTravelHours.toFixed(2)} h`, 110, curY);
+
+    if (currentMonthZK.deduction > 0) {
+      curY += 6;
+      doc.setTextColor(180, 83, 9);
+      doc.text(`Arbeitszeitkonto: -${currentMonthZK.deduction.toFixed(2)} h`, 14, curY);
+      
+      curY += 6;
+      doc.setTextColor(16, 185, 129);
+      doc.text(`${t('netWorkingTime')}: ${currentMonthZK.netHours.toFixed(2)} h`, 14, curY);
+      doc.setTextColor(0, 0, 0);
+    }
+
+    curY += 7;
+    doc.setTextColor(30, 58, 138);
+    doc.text(`${t('bestandZeitkonto')}: ${currentMonthZK.cumulativeBalance.toFixed(2)} / 200.00 h`, 14, curY);
+    doc.setTextColor(0, 0, 0);
 
     doc.save(`AquaCon_Zeiterfassung_${userName}.pdf`);
   };
@@ -231,6 +270,33 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
         >
           {t('exportPdf')}
         </button>
+      </div>
+
+      {/* Zeitkonto Info Banner */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-3.5 rounded-xl mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm flex-shrink-0">
+            ⏱️
+          </div>
+          <div>
+            <div className="font-bold text-gray-900">{t('bestandZeitkonto')}</div>
+            <div className="text-blue-700 font-extrabold text-sm sm:text-base">
+              {zeitkontoData.currentBalance.toFixed(1)} <span className="text-xs font-semibold text-gray-500">/ 200.0 h</span>
+            </div>
+          </div>
+        </div>
+
+        {currentMonthZK.deduction > 0 ? (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-100/80 border border-amber-300 text-amber-900 font-medium text-xs">
+            <span>ℹ️</span>
+            <span>{selectedMonth}: <strong>-{currentMonthZK.deduction.toFixed(1)} h</strong> {t('zeitkontoTransfer')}</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100/80 border border-emerald-300 text-emerald-900 font-medium text-xs">
+            <span>✅</span>
+            <span>{zeitkontoData.currentBalance >= 200 ? t('zeitkontoLimitReached') : `${t('grossWorkingTime')} = ${t('netWorkingTime')}`}</span>
+          </div>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -339,7 +405,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span>{entry.location || '-'}</span>
                       {entry.isFeiertag && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 shadow-sm">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800 shadow-sm">
                           🎉 {entry.feiertagName}
                         </span>
                       )}
@@ -370,16 +436,28 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
           {displayedEntries.length > 0 && (
             <tfoot className="bg-blue-50 text-sm">
               <tr className="font-bold border-t-2 border-blue-200">
-                <td colSpan={5} className="p-3 text-right text-gray-800">
+                <td colSpan={5} className="p-3 text-right text-gray-800 align-top">
                   <span className="font-bold">{t('totalHours')}:</span>
                 </td>
-                <td className="p-3 text-blue-800 font-bold">
-                  {displayedEntries.reduce((sum, entry) => sum + (parseFloat(entry.travelHours) || 0), 0).toFixed(1)} h
+                <td className="p-3 text-blue-800 font-bold align-top">
+                  <div>{displayedEntries.reduce((sum, entry) => sum + (parseFloat(entry.travelHours) || 0), 0).toFixed(1)} h</div>
                   <div className="text-[10px] text-gray-500 font-normal">{t('totalTravelTime')}</div>
                 </td>
-                <td className="p-3 text-blue-800 font-bold">
-                  {displayedEntries.reduce((sum, entry) => sum + (entry.totalHours || 0), 0).toFixed(2)} h
-                  <div className="text-[10px] text-gray-500 font-normal">{t('totalWorkingTime')}</div>
+                <td className="p-3 text-blue-800 font-bold align-top">
+                  <div>{currentMonthZK.grossHours.toFixed(2)} h</div>
+                  <div className="text-[10px] text-gray-500 font-normal">{t('grossWorkingTime')}</div>
+                  
+                  {currentMonthZK.deduction > 0 && (
+                    <>
+                      <div className="text-amber-700 text-xs font-semibold mt-1 pt-1 border-t border-blue-200">
+                        -{currentMonthZK.deduction.toFixed(1)} h {t('zeitkontoTransfer')}
+                      </div>
+                      <div className="text-emerald-700 font-extrabold text-sm mt-0.5">
+                        = {currentMonthZK.netHours.toFixed(2)} h
+                        <div className="text-[10px] text-emerald-600 font-normal">{t('netWorkingTime')}</div>
+                      </div>
+                    </>
+                  )}
                 </td>
                 <td className="p-3"></td>
               </tr>

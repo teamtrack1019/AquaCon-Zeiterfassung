@@ -42,6 +42,9 @@ export async function GET(req: Request) {
     include: {
       leaveRequests: {
         orderBy: { createdAt: 'desc' }
+      },
+      timeEntries: {
+        select: { date: true, totalHours: true }
       }
     }
   });
@@ -72,7 +75,14 @@ export async function GET(req: Request) {
     user.carriedOverLeaveDays = finalCarryOver;
   }
 
-  return NextResponse.json(user);
+  // Calculate Zeitkonto
+  const { calculateZeitkonto } = await import('@/lib/zeitkonto');
+  const zeitkonto = calculateZeitkonto(user.timeEntries);
+
+  return NextResponse.json({
+    ...user,
+    zeitkonto,
+  });
 }
 
 export async function POST(req: Request) {

@@ -625,28 +625,40 @@ export default function Dashboard() {
           <h2 className="text-xl font-bold mb-4">{t('absencesTitle')}</h2>
           
           {userDetails && (
-            <div className="flex gap-6 mb-6 p-4 bg-gray-50 rounded border">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
               <div>
-                <span className="block text-sm text-gray-500">{t('annualLeave')}</span>
-                <span className="font-bold text-lg">{userDetails.annualLeaveDays} {t('days')}</span>
+                <span className="block text-xs sm:text-sm text-gray-500 font-medium">{t('annualLeave')}</span>
+                <span className="font-bold text-base sm:text-lg text-gray-900">{userDetails.annualLeaveDays} {t('days')}</span>
               </div>
               <div>
-                <span className="block text-sm text-gray-500">{t('lastYearRest')}</span>
-                <span className="font-bold text-lg text-green-600">{userDetails.carriedOverLeaveDays} {t('days')}</span>
+                <span className="block text-xs sm:text-sm text-gray-500 font-medium">{t('lastYearRest')}</span>
+                <span className="font-bold text-base sm:text-lg text-green-600">{userDetails.carriedOverLeaveDays} {t('days')}</span>
               </div>
               {/* Calculate used approved vacation for current year */}
               {(() => {
                 const used = userDetails.leaveRequests
-                  .filter((l: any) => l.type === 'URLAUB' && l.status === 'APPROVED' && new Date(l.createdAt).getFullYear() === new Date().getFullYear())
-                  .reduce((sum: number, l: any) => sum + l.daysCount, 0);
-                const rest = userDetails.annualLeaveDays + userDetails.carriedOverLeaveDays - used;
+                  ?.filter((l: any) => l.type === 'URLAUB' && l.status === 'APPROVED' && new Date(l.createdAt).getFullYear() === new Date().getFullYear())
+                  .reduce((sum: number, l: any) => sum + l.daysCount, 0) || 0;
+                const rest = (userDetails.annualLeaveDays || 0) + (userDetails.carriedOverLeaveDays || 0) - used;
                 return (
                   <div>
-                    <span className="block text-sm text-gray-500">{t('currentRest')}</span>
-                    <span className="font-bold text-lg text-blue-600">{rest} {t('days')}</span>
+                    <span className="block text-xs sm:text-sm text-gray-500 font-medium">{t('currentRest')}</span>
+                    <span className="font-bold text-base sm:text-lg text-blue-600">{rest} {t('days')}</span>
                   </div>
                 );
               })()}
+              <div className="border-l border-gray-200 pl-4 bg-blue-50/60 -my-2 -mr-2 p-2 rounded-r-lg">
+                <span className="block text-xs sm:text-sm text-blue-900 font-bold">⏱️ {t('bestandZeitkonto')}</span>
+                <span className="font-extrabold text-base sm:text-lg text-indigo-700">
+                  {userDetails.zeitkonto?.currentBalance?.toFixed(1) || "0.0"} <span className="text-xs font-semibold text-gray-500">/ 200 h</span>
+                </span>
+                <div className="w-full bg-blue-200 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                  <div 
+                    className="bg-indigo-600 h-1.5 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((userDetails.zeitkonto?.currentBalance || 0) / 200) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
             </div>
           )}
 

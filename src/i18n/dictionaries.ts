@@ -91,6 +91,12 @@ export const dictionaries = {
     toastDraftSaved: "💾 Änderungen wurden lokal gespeichert",
     totalWorkingTime: "Gesamt Arbeitszeit",
     totalTravelTime: "Gesamt Fahrzeit",
+    zeitkonto: "Arbeitszeitkonto",
+    bestandZeitkonto: "Bestand Zeitkonto",
+    grossWorkingTime: "Gesamt Arbeitszeit",
+    netWorkingTime: "Auszahlbare Arbeitszeit",
+    zeitkontoTransfer: "Arbeitszeitkonto",
+    zeitkontoLimitReached: "200 Std. erreicht (Voll)",
   },
   ru: {
     login: "Войти",
@@ -184,6 +190,12 @@ export const dictionaries = {
     toastDraftSaved: "💾 Изменения сохранены локально",
     totalWorkingTime: "Общее рабочее время",
     totalTravelTime: "Общее время в пути",
+    zeitkonto: "Тайм-счет",
+    bestandZeitkonto: "Баланс тайм-счета",
+    grossWorkingTime: "Общее рабочее время",
+    netWorkingTime: "К выплате (Раб. время)",
+    zeitkontoTransfer: "Тайм-счет",
+    zeitkontoLimitReached: "200 ч. достигнуто (Заполнено)",
   }
 };
 export type Language = 'de' | 'ru';
