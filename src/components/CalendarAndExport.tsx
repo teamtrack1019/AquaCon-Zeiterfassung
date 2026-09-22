@@ -4,6 +4,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculateZeitkonto } from "@/lib/zeitkonto";
+import { AQUACON_LOGO_BASE64 } from "@/lib/logoBase64";
 
 export default function CalendarAndExport({ userName, refreshTrigger }: { userName: string, refreshTrigger?: number }) {
   const { t } = useLanguage();
@@ -146,14 +147,22 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
   const generatePDF = () => {
     const doc = new jsPDF();
     
+    // Logo (Top Right)
+    try {
+      doc.addImage(AQUACON_LOGO_BASE64, 'PNG', 170, 10, 26, 26);
+    } catch (e) {}
+
     // Header
     doc.setFontSize(18);
-    doc.text("AquaCon Zeiterfassung", 14, 22);
+    doc.setTextColor(0, 95, 168);
+    doc.text("AquaCon Zeiterfassung", 14, 20);
     
     doc.setFontSize(11);
-    doc.text(`Mitarbeiter: ${userName}`, 14, 30);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Mitarbeiter: ${userName}`, 14, 28);
     const currentDate = new Date().toLocaleDateString('de-DE');
-    doc.text(`Erstelldatum: ${currentDate}`, 14, 36);
+    doc.text(`Monat: ${formatMonthLabel(selectedMonth)}  |  Erstelldatum: ${currentDate}`, 14, 35);
+    doc.setTextColor(0, 0, 0);
 
     // Table Data
     const tableColumn = [t('date'), t('ort'), t('start'), t('stop'), t('pauseHours'), t('travelHours'), t('totalH')];

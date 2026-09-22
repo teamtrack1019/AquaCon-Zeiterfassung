@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculateZeitkonto } from "@/lib/zeitkonto";
+import { AQUACON_LOGO_BASE64 } from "@/lib/logoBase64";
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -301,13 +302,22 @@ export default function AdminDashboard() {
     
     const doc = new jsPDF();
     
+    // Logo (Top Right)
+    try {
+      doc.addImage(AQUACON_LOGO_BASE64, 'PNG', 170, 10, 26, 26);
+    } catch (e) {}
+
+    // Header
     doc.setFontSize(18);
-    doc.text("AquaCon Zeiterfassung", 14, 22);
+    doc.setTextColor(0, 95, 168);
+    doc.text("AquaCon Zeiterfassung", 14, 20);
     
     doc.setFontSize(11);
-    doc.text(`Mitarbeiter: ${selectedUser.username}`, 14, 30);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Mitarbeiter: ${selectedUser.username}`, 14, 28);
     const currentDate = new Date().toLocaleDateString('de-DE');
-    doc.text(`Erstelldatum: ${currentDate}`, 14, 36);
+    doc.text(`Monat: ${formatMonthLabel(adminSelectedMonth)}  |  Erstelldatum: ${currentDate}`, 14, 35);
+    doc.setTextColor(0, 0, 0);
 
     const tableColumn = ["Datum", "Ort", "Start", "Ende", "Pause (h)", "Fahrzeit (h)", "Gesamt (h)"];
     const tableRows: any[] = [];
