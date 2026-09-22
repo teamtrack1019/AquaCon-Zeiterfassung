@@ -1,4 +1,4 @@
-﻿import { ImageResponse } from 'next/og'
+import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
 
@@ -18,19 +18,16 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#2563eb', // blue-600
+          backgroundColor: '#005fa8',
           borderRadius: '50%',
-          color: 'white',
-          fontSize: 32,
-          fontWeight: 'bold',
-          flexDirection: 'column',
-          lineHeight: 1.1,
           fontFamily: 'sans-serif',
+          fontWeight: 700,
+          position: 'relative',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <span>Aqua</span>
-          <span>Con</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', fontSize: 32 }}>
+          <span style={{ color: '#ffffff', letterSpacing: '-1px' }}>Aqua</span>
+          <span style={{ color: '#78c9ea', letterSpacing: '-1px' }}>Con</span>
         </div>
       </div>
     ),

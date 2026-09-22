@@ -62,8 +62,15 @@ export default function Home() {
     <>
       <Header />
       <main className="flex flex-col items-center justify-center mt-20">
-        <div className="bg-white p-8 rounded shadow-md w-96">
-          <h1 className="text-2xl font-bold mb-6 text-center">{t('login')}</h1>
+        <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100 w-96">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/logo.png" 
+              alt="AquaCon Logo" 
+              className="w-20 h-20 rounded-full shadow-md object-contain hover:scale-105 transition-transform" 
+            />
+          </div>
+          <h1 className="text-2xl font-bold mb-6 text-center text-gray-900">{t('login')}</h1>
           {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
           <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
             <div>

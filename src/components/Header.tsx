@@ -11,7 +11,7 @@ export default function Header() {
       <div className="flex items-center gap-3">
         {/* Yuvarlak Mavi Daire Logo */}
         <img 
-          src="/logo.svg" 
+          src="/logo.png" 
           alt="AquaCon Logo" 
           className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md flex-shrink-0 object-contain hover:scale-105 transition-transform" 
         />
