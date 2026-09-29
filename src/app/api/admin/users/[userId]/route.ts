@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { deleteUserCascade, updateUser } from "@/lib/db";
 
 export async function DELETE(
   _req: Request,
@@ -13,12 +13,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = parseInt(params.userId, 10);
-
-  await prisma.leaveRequest.deleteMany({ where: { userId } });
-  await prisma.timeEntry.deleteMany({ where: { userId } });
-  await prisma.user.delete({ where: { id: userId } });
-
+  await deleteUserCascade(params.userId);
   return NextResponse.json({ success: true });
 }
 
@@ -31,7 +26,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = parseInt(params.userId, 10);
   const { newPassword, annualLeaveDays, carriedOverLeaveDays, entryDate } =
     await req.json();
 
@@ -66,10 +60,7 @@ export async function PATCH(
   }
 
   if (Object.keys(dataToUpdate).length > 0) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: dataToUpdate,
-    });
+    await updateUser(params.userId, dataToUpdate);
   }
 
   return NextResponse.json({ success: true });
