@@ -5,13 +5,22 @@ let app: App | undefined;
 let db: Firestore | undefined;
 
 function loadServiceAccount() {
-  const json = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (json) {
-    const parsed = JSON.parse(json) as {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
+  if (raw) {
+    let parsed: {
       project_id: string;
       client_email: string;
       private_key: string;
     };
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // Sometimes the whole JSON is wrapped in extra quotes
+      parsed = JSON.parse(JSON.parse(raw));
+    }
+    if (!parsed?.project_id || !parsed?.client_email || !parsed?.private_key) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON is missing project_id/client_email/private_key");
+    }
     return {
       projectId: parsed.project_id,
       clientEmail: parsed.client_email,

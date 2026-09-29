@@ -9,13 +9,22 @@ async function ensureBootstrapAdmin() {
   if (!username || !password) return;
 
   const existing = await findUserByUsername(username);
-  if (existing) return;
+  const hashed = await bcrypt.hash(password, 10);
 
-  await createUser({
-    username,
-    password: await bcrypt.hash(password, 10),
-    role: "ADMIN",
-  });
+  if (!existing) {
+    await createUser({
+      username,
+      password: hashed,
+      role: "ADMIN",
+    });
+    return;
+  }
+
+  // Keep Admin password aligned with Vercel ADMIN_PASSWORD
+  const stillValid = await verifyPassword(password, existing.password);
+  if (!stillValid) {
+    await updateUser(existing.id, { password: hashed });
+  }
 }
 
 async function verifyPassword(plain: string, stored: string): Promise<boolean> {
@@ -36,21 +45,26 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.username || !credentials?.password) return null;
 
-        await ensureBootstrapAdmin();
+        try {
+          await ensureBootstrapAdmin();
 
-        const user = await findUserByUsername(credentials.username);
-        if (!user) return null;
+          const user = await findUserByUsername(credentials.username);
+          if (!user) return null;
 
-        const isValid = await verifyPassword(credentials.password, user.password);
-        if (!isValid) return null;
+          const isValid = await verifyPassword(credentials.password, user.password);
+          if (!isValid) return null;
 
-        if (!user.password.startsWith("$2a$") && !user.password.startsWith("$2b$")) {
-          await updateUser(user.id, {
-            password: await bcrypt.hash(credentials.password, 10),
-          });
+          if (!user.password.startsWith("$2a$") && !user.password.startsWith("$2b$")) {
+            await updateUser(user.id, {
+              password: await bcrypt.hash(credentials.password, 10),
+            });
+          }
+
+          return { id: user.id, name: user.username, role: user.role };
+        } catch (err) {
+          console.error("[auth] login failed:", err);
+          return null;
         }
-
-        return { id: user.id, name: user.username, role: user.role };
       },
     }),
   ],
