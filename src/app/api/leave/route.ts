@@ -1,26 +1,29 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getGermanHolidayName } from "@/lib/holidays";
+import {
+  createLeaveRequest,
+  findUserByUsername,
+  listLeaveRequestsForUser,
+  listTimeEntrySummaries,
+  updateUser,
+} from "@/lib/db";
 
-import { getGermanHolidayName } from '@/lib/holidays';
-import { prisma } from '@/lib/prisma';
-
-// Hafta sonları ve resmi tatiller (Feiertage) hariç iş günü hesaplama
 function calculateWorkingDays(startDateStr: string, endDateStr: string): number {
-  const [sY, sM, sD] = startDateStr.split('-').map(Number);
-  const [eY, eM, eD] = endDateStr.split('-').map(Number);
+  const [sY, sM, sD] = startDateStr.split("-").map(Number);
+  const [eY, eM, eD] = endDateStr.split("-").map(Number);
   const start = new Date(sY, sM - 1, sD);
   const end = new Date(eY, eM - 1, eD);
   let count = 0;
-  
-  let current = new Date(start);
+
+  const current = new Date(start);
   while (current <= end) {
     const dayOfWeek = current.getDay();
-    // 0 = Pazar, 6 = Cumartesi
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
       const y = current.getFullYear();
-      const m = (current.getMonth() + 1).toString().padStart(2, '0');
-      const d = current.getDate().toString().padStart(2, '0');
+      const m = (current.getMonth() + 1).toString().padStart(2, "0");
+      const d = current.getDate().toString().padStart(2, "0");
       const dateStr = `${y}-${m}-${d}`;
       if (!getGermanHolidayName(dateStr)) {
         count++;
@@ -31,63 +34,66 @@ function calculateWorkingDays(startDateStr: string, endDateStr: string): number 
   return count;
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.name) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const user = await prisma.user.findUnique({ 
-    where: { username: session.user.name },
-    include: {
-      leaveRequests: {
-        orderBy: { createdAt: 'desc' }
-      },
-      timeEntries: {
-        select: { date: true, totalHours: true }
-      }
-    }
-  });
-  
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-  // Otomatik devir kontrolü
-  const currentYear = new Date().getFullYear();
-  if (user.lastCarryOverYear < currentYear) {
-    // Devir işlemi yap
-    // Önceki yıldan kalan izin hesapla
-    const pastApprovedUrlaub = user.leaveRequests
-      .filter(l => l.type === 'URLAUB' && l.status === 'APPROVED' && new Date(l.createdAt).getFullYear() === user.lastCarryOverYear)
-      .reduce((sum, l) => sum + l.daysCount, 0);
-      
-    const rest = (user.annualLeaveDays + user.carriedOverLeaveDays) - pastApprovedUrlaub;
-    const finalCarryOver = rest > 0 ? rest : 0;
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        lastCarryOverYear: currentYear,
-        carriedOverLeaveDays: finalCarryOver
-      }
-    });
-    
-    user.lastCarryOverYear = currentYear;
-    user.carriedOverLeaveDays = finalCarryOver;
+  if (!session?.user?.name) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Calculate Zeitkonto
-  const { calculateZeitkonto } = await import('@/lib/zeitkonto');
-  const zeitkonto = calculateZeitkonto(user.timeEntries);
+  const user = await findUserByUsername(session.user.name);
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+  const leaveRequests = await listLeaveRequestsForUser(user.id);
+  const timeEntries = await listTimeEntrySummaries(user.id);
+
+  const currentYear = new Date().getFullYear();
+  let lastCarryOverYear = user.lastCarryOverYear;
+  let carriedOverLeaveDays = user.carriedOverLeaveDays;
+
+  if (lastCarryOverYear < currentYear) {
+    const pastApprovedUrlaub = leaveRequests
+      .filter(
+        (l) =>
+          l.type === "URLAUB" &&
+          l.status === "APPROVED" &&
+          new Date(l.createdAt).getFullYear() === lastCarryOverYear
+      )
+      .reduce((sum, l) => sum + l.daysCount, 0);
+
+    const rest = user.annualLeaveDays + carriedOverLeaveDays - pastApprovedUrlaub;
+    const finalCarryOver = rest > 0 ? rest : 0;
+
+    await updateUser(user.id, {
+      lastCarryOverYear: currentYear,
+      carriedOverLeaveDays: finalCarryOver,
+    });
+
+    lastCarryOverYear = currentYear;
+    carriedOverLeaveDays = finalCarryOver;
+  }
+
+  const { calculateZeitkonto } = await import("@/lib/zeitkonto");
+  const zeitkonto = calculateZeitkonto(timeEntries);
+
+  const { password: _password, usernameLower: _ul, ...safeUser } = user;
 
   return NextResponse.json({
-    ...user,
+    ...safeUser,
+    lastCarryOverYear,
+    carriedOverLeaveDays,
+    leaveRequests,
+    timeEntries,
     zeitkonto,
   });
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.name) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user?.name) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-  const user = await prisma.user.findUnique({ where: { username: session.user.name } });
+  const user = await findUserByUsername(session.user.name);
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const { type, startDate, endDate } = await req.json();
@@ -97,25 +103,24 @@ export async function POST(req: Request) {
   }
 
   const daysCount = calculateWorkingDays(startDate, endDate);
-  
   if (daysCount === 0) {
-    return NextResponse.json({ error: "Seçilen tarihler arasında iş günü bulunmuyor." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Seçilen tarihler arasında iş günü bulunmuyor." },
+      { status: 400 }
+    );
   }
 
-  // Rapor (Krank) ise direkt onaylanır, Urlaub ise onaya düşer
-  const status = type === 'KRANK' ? 'APPROVED' : 'PENDING';
+  const status = type === "KRANK" ? "APPROVED" : "PENDING";
 
-  const leaveRequest = await prisma.leaveRequest.create({
-    data: {
-      userId: user.id,
-      type,
-      startDate,
-      endDate,
-      daysCount,
-      status
-    }
+  const leaveRequest = await createLeaveRequest({
+    userId: user.id,
+    type,
+    startDate,
+    endDate,
+    daysCount,
+    status,
+    username: user.username,
   });
 
   return NextResponse.json(leaveRequest);
 }
-

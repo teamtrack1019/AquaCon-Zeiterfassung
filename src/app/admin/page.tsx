@@ -112,7 +112,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const deleteUser = async (userId: number, username: string) => {
+  const deleteUser = async (userId: string, username: string) => {
     if (!confirm(`Möchten Sie den Mitarbeiter '${username}' wirklich löschen? Alle seine Zeiteinträge werden ebenfalls gelöscht.`)) return;
     
     const res = await fetch(`/api/admin/users/${userId}`, {
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const changeWorkerPassword = async (userId: number, username: string) => {
+  const changeWorkerPassword = async (userId: string, username: string) => {
     const newPassword = prompt(`Neues Passwort (PIN) für '${username}' eingeben:`);
     if (!newPassword) return;
     
@@ -167,7 +167,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const changeWorkerLeave = async (userId: number, username: string, currentDays: number) => {
+  const changeWorkerLeave = async (userId: string, username: string, currentDays: number) => {
     const newVal = prompt(`Jahresurlaub für '${username}' ändern (z.B. 12.5 oder 12,5):`, currentDays.toString());
     if (newVal === null) return;
     
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const changeWorkerCarriedLeave = async (userId: number, username: string, currentDays: number) => {
+  const changeWorkerCarriedLeave = async (userId: string, username: string, currentDays: number) => {
     const newVal = prompt(`${t('lastYearRest')} für '${username}' ${t('change')} (z.B. 2.5 oder 2,5):`, currentDays.toString());
     if (newVal === null) return;
     
@@ -218,7 +218,7 @@ export default function AdminDashboard() {
     return `${parts[1]}/${parts[0]}`;
   };
 
-  const changeWorkerEntryDate = async (userId: number, username: string, currentEntryDate?: string) => {
+  const changeWorkerEntryDate = async (userId: string, username: string, currentEntryDate?: string) => {
     const newVal = prompt(`${t('entryDate')} für '${username}' ändern (z.B. 03.08.2026 oder 2026-08-03):`, currentEntryDate ? formatDbDate(currentEntryDate) : "");
     if (newVal === null) return;
     

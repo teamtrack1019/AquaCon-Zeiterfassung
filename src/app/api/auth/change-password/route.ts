@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import bcrypt from "bcryptjs";
+import { authOptions } from "@/lib/auth";
+import { findUserByUsername, updateUser } from "@/lib/db";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -16,23 +16,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Passwort zu kurz" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { username: session.user.name }
-  });
-
+  const user = await findUserByUsername(session.user.name);
   if (!user) {
     return NextResponse.json({ error: "Benutzer nicht gefunden" }, { status: 404 });
   }
 
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { password: hashedPassword }
+  await updateUser(user.id, {
+    password: await bcrypt.hash(newPassword, 10),
   });
 
   return NextResponse.json({ success: true });
 }
-
-
-
