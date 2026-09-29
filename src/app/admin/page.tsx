@@ -651,7 +651,7 @@ export default function AdminDashboard() {
                     <div className="flex flex-col">
                       <span className="font-semibold text-base sm:text-lg text-gray-900">{u.username}</span>
                       <span className="text-xs text-gray-500 font-mono">
-                        {u.password?.startsWith('$2') ? 'Verschlüsselt (Bitte Passwort neu vergeben)' : `PIN: ${u.password}`}
+                        Passwort verschlüsselt (bei Bedarf neu vergeben)
                       </span>
                     </div>
                     {u.role !== 'ADMIN' && (

@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 import { getGermanHolidayName } from '@/lib/holidays';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // Hafta sonları ve resmi tatiller (Feiertage) hariç iş günü hesaplama
 function calculateWorkingDays(startDateStr: string, endDateStr: string): number {
