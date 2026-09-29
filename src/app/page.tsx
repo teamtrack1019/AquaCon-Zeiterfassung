@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { getSession, signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { useLanguage } from "@/context/LanguageContext";
@@ -45,8 +45,14 @@ export default function Home() {
     });
     if (res?.error) {
       setError("Falsche Zugangsdaten");
+      return;
+    }
+
+    const nextSession = await getSession();
+    if ((nextSession?.user as { role?: string } | undefined)?.role === "ADMIN") {
+      router.replace("/admin");
     } else {
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
   };
 
@@ -126,7 +132,7 @@ export default function Home() {
             </button>
           </form>
           <p className="text-xs text-gray-500 mt-4 text-center">
-            (Für Testzwecke: Ein neuer Account wird bei Eingabe automatisch erstellt)
+            Zugang nur mit vom Admin vergebenen Zugangsdaten
           </p>
         </div>
       </main>

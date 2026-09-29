@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getGermanHolidays } from '@/lib/holidays';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 function getWorkingDaysInRange(startDateStr: string, endDateStr: string): string[] {
   const [sY, sM, sD] = startDateStr.split('-').map(Number);
