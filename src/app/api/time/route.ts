@@ -10,6 +10,10 @@ import {
   findUserByUsername,
   updateTimeEntry,
 } from "@/lib/db";
+import { isDateInCurrentWorkWeek } from "@/lib/workWeek";
+
+const WEEK_LOCKED_ERROR =
+  "Diese Woche ist abgeschlossen. Änderungen sind nur bis Sonntag möglich.";
 
 function getTodayStr() {
   const date = new Date();
@@ -142,6 +146,9 @@ export async function POST(req: Request) {
     if (!entry) {
       return NextResponse.json({ error: "No entry today" }, { status: 400 });
     }
+    if (user.role !== "ADMIN" && !isDateInCurrentWorkWeek(entry.date)) {
+      return NextResponse.json({ error: WEEK_LOCKED_ERROR }, { status: 403 });
+    }
 
     let totalHours: number | null = null;
     const finalStart = startTime !== undefined ? startTime : entry.startTime;
@@ -177,6 +184,9 @@ export async function POST(req: Request) {
   if (action === "delete") {
     if (!entry) {
       return NextResponse.json({ error: "Entry not found" }, { status: 400 });
+    }
+    if (user.role !== "ADMIN" && !isDateInCurrentWorkWeek(entry.date)) {
+      return NextResponse.json({ error: WEEK_LOCKED_ERROR }, { status: 403 });
     }
     await deleteTimeEntry(entry.id);
     return NextResponse.json({ success: true });
