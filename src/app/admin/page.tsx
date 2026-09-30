@@ -22,6 +22,8 @@ export default function AdminDashboard() {
   
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userEntries, setUserEntries] = useState<any[]>([]);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [entryEditForm, setEntryEditForm] = useState<any>({});
   const [adminSelectedMonth, setAdminSelectedMonth] = useState("");
   
   const [adminNewPassword, setAdminNewPassword] = useState("");
@@ -105,10 +107,53 @@ export default function AdminDashboard() {
 
   const viewUserEntries = async (user: any) => {
     setSelectedUser(user);
+    setEditingEntryId(null);
     const res = await fetch(`/api/admin/entries/${user.id}`);
     if (res.ok) {
       const data = await res.json();
       setUserEntries(data);
+    }
+  };
+
+  const startEntryEdit = (entry: any) => {
+    setEditingEntryId(entry.id);
+    setEntryEditForm({
+      startTime: entry.startTime || "",
+      endTime: entry.endTime || "",
+      pauseHours: entry.pauseHours?.toString() || "0",
+      travelHours: entry.travelHours?.toString() || "0",
+      location: entry.location || "",
+    });
+  };
+
+  const saveEntryEdit = async (entryId: string) => {
+    if (!selectedUser) return;
+    const res = await fetch(`/api/admin/entries/${selectedUser.id}/${entryId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(entryEditForm),
+    });
+    if (res.ok) {
+      setEditingEntryId(null);
+      viewUserEntries(selectedUser);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Fehler beim Speichern");
+    }
+  };
+
+  const deleteEntry = async (entryId: string) => {
+    if (!selectedUser) return;
+    if (!confirm("Möchten Sie diesen Eintrag wirklich löschen?")) return;
+    const res = await fetch(`/api/admin/entries/${selectedUser.id}/${entryId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setEditingEntryId(null);
+      viewUserEntries(selectedUser);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Fehler beim Löschen");
     }
   };
 
@@ -790,11 +835,12 @@ export default function AdminDashboard() {
                         <th className="p-3 border-b">{t('pause')}</th>
                         <th className="p-3 border-b">{t('travel')}</th>
                         <th className="p-3 border-b">{t('totalH')}</th>
+                        <th className="p-3 border-b">{t('edit')}</th>
                       </tr>
                     </thead>
                     <tbody className="text-sm divide-y divide-gray-100">
                       {displayedUserEntries.length === 0 ? (
-                        <tr><td colSpan={7} className="p-6 text-center text-gray-500">{t('noTimesYet')}</td></tr>
+                        <tr><td colSpan={8} className="p-6 text-center text-gray-500">{t('noTimesYet')}</td></tr>
                       ) : (
                         displayedUserEntries.map((e: any) => {
                           const formattedDate = formatDateWithDay(e.date);
@@ -818,6 +864,7 @@ export default function AdminDashboard() {
                                     Feiertag frei
                                   </span>
                                 </td>
+                                <td className="p-3"></td>
                               </tr>
                             );
                           }
@@ -840,6 +887,27 @@ export default function AdminDashboard() {
                                   <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
                                     {e.leaveType === 'URLAUB' ? t('vacation') : t('sick')}
                                   </span>
+                                </td>
+                                <td className="p-3"></td>
+                              </tr>
+                            );
+                          }
+
+                          if (editingEntryId === e.id) {
+                            return (
+                              <tr key={e.id} className="bg-yellow-50/80">
+                                <td className="p-3">{formattedDate}</td>
+                                <td className="p-2"><input className="border border-gray-300 rounded p-1.5 w-28 text-xs" value={entryEditForm.location} onChange={ev => setEntryEditForm({ ...entryEditForm, location: ev.target.value })} /></td>
+                                <td className="p-2"><input type="time" className="border border-gray-300 rounded p-1.5 w-24 text-xs" value={entryEditForm.startTime} onChange={ev => setEntryEditForm({ ...entryEditForm, startTime: ev.target.value })} /></td>
+                                <td className="p-2"><input type="time" className="border border-gray-300 rounded p-1.5 w-24 text-xs" value={entryEditForm.endTime} onChange={ev => setEntryEditForm({ ...entryEditForm, endTime: ev.target.value })} /></td>
+                                <td className="p-2"><input type="number" step="0.5" className="border border-gray-300 rounded p-1.5 w-16 text-xs" value={entryEditForm.pauseHours} onChange={ev => setEntryEditForm({ ...entryEditForm, pauseHours: ev.target.value })} /></td>
+                                <td className="p-2"><input type="number" step="0.5" className="border border-gray-300 rounded p-1.5 w-16 text-xs" value={entryEditForm.travelHours} onChange={ev => setEntryEditForm({ ...entryEditForm, travelHours: ev.target.value })} /></td>
+                                <td className="p-3 font-bold text-blue-600">{e.totalHours ? e.totalHours.toFixed(2) : '-'} h</td>
+                                <td className="p-3">
+                                  <div className="flex gap-1.5">
+                                    <button onClick={() => saveEntryEdit(e.id)} className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">{t('save')}</button>
+                                    <button onClick={() => setEditingEntryId(null)} className="bg-gray-400 text-white px-2 py-1 rounded text-xs font-bold">{t('cancel')}</button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -868,6 +936,12 @@ export default function AdminDashboard() {
                                   {e.isFeiertag && (
                                     <span className="text-[10px] font-semibold text-purple-700">Feiertagsarbeit</span>
                                   )}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex gap-1.5 items-center">
+                                  <button onClick={() => startEntryEdit(e)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-1 rounded text-xs font-semibold transition">{t('edit')}</button>
+                                  <button onClick={() => deleteEntry(e.id)} className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded text-xs font-semibold transition">{t('delete')}</button>
                                 </div>
                               </td>
                             </tr>
@@ -901,6 +975,7 @@ export default function AdminDashboard() {
                               </>
                             )}
                           </td>
+                          <td className="p-3"></td>
                         </tr>
                       </tfoot>
                     )}
