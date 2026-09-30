@@ -20,9 +20,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { username, password, annualLeaveDays, entryDate } = await req.json();
+  const { username, password, annualLeaveDays, entryDate, firstName, lastName } = await req.json();
 
-  if (!username || !password) {
+  if (!username || !password || !String(firstName || "").trim() || !String(lastName || "").trim()) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -37,6 +37,8 @@ export async function POST(req: Request) {
 
   const user = await createUser({
     username,
+    firstName: String(firstName).trim(),
+    lastName: String(lastName).trim(),
     password: await bcrypt.hash(String(password), 10),
     role: "WORKER",
     annualLeaveDays: annualLeaveDays
@@ -48,6 +50,8 @@ export async function POST(req: Request) {
   return NextResponse.json({
     id: user.id,
     username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: user.role,
     annualLeaveDays: user.annualLeaveDays,
     entryDate: user.entryDate,

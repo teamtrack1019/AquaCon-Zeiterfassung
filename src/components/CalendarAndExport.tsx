@@ -6,7 +6,7 @@ import autoTable from "jspdf-autotable";
 import { calculateZeitkonto } from "@/lib/zeitkonto";
 import { AQUACON_LOGO_BASE64 } from "@/lib/logoBase64";
 
-export default function CalendarAndExport({ userName, refreshTrigger }: { userName: string, refreshTrigger?: number }) {
+export default function CalendarAndExport({ userName, fullName, refreshTrigger }: { userName: string, fullName?: string, refreshTrigger?: number }) {
   const { t } = useLanguage();
   const [entries, setEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,7 +159,7 @@ export default function CalendarAndExport({ userName, refreshTrigger }: { userNa
     
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
-    doc.text(`Mitarbeiter: ${userName}`, 14, 28);
+    doc.text(`Mitarbeiter: ${fullName?.trim() || userName}`, 14, 28);
     const currentDate = new Date().toLocaleDateString('de-DE');
     doc.text(`Monat: ${formatMonthLabel(selectedMonth)}  |  Erstelldatum: ${currentDate}`, 14, 35);
     doc.setTextColor(0, 0, 0);

@@ -6,6 +6,7 @@ import { useSync } from "@/context/SyncContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import CalendarAndExport from "@/components/CalendarAndExport";
+import { workerDisplayName } from "@/lib/displayName";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -723,7 +724,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <CalendarAndExport userName={session?.user?.name || "Mitarbeiter"} refreshTrigger={refreshCal} />
+        <CalendarAndExport
+          userName={session?.user?.name || "Mitarbeiter"}
+          fullName={workerDisplayName({
+            firstName: userDetails?.firstName,
+            lastName: userDetails?.lastName,
+            username: session?.user?.name,
+          })}
+          refreshTrigger={refreshCal}
+        />
       </main>
     </>
   );

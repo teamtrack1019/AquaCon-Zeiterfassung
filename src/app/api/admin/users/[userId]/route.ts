@@ -26,15 +26,27 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { newPassword, annualLeaveDays, carriedOverLeaveDays, entryDate } =
+  const { newPassword, annualLeaveDays, carriedOverLeaveDays, entryDate, firstName, lastName } =
     await req.json();
 
   const dataToUpdate: {
     password?: string;
+    firstName?: string;
+    lastName?: string;
     annualLeaveDays?: number;
     carriedOverLeaveDays?: number;
     entryDate?: string | null;
   } = {};
+
+  if (firstName !== undefined || lastName !== undefined) {
+    const nextFirst = String(firstName || "").trim();
+    const nextLast = String(lastName || "").trim();
+    if (!nextFirst || !nextLast) {
+      return NextResponse.json({ error: "Vorname und Nachname sind erforderlich" }, { status: 400 });
+    }
+    dataToUpdate.firstName = nextFirst;
+    dataToUpdate.lastName = nextLast;
+  }
 
   if (newPassword) {
     if (String(newPassword).length < 3) {
