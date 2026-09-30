@@ -5,6 +5,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculateZeitkonto } from "@/lib/zeitkonto";
 import { AQUACON_LOGO_BASE64 } from "@/lib/logoBase64";
+import { isDateInCurrentWorkWeek } from "@/lib/workWeek";
 
 export default function CalendarAndExport({ userName, fullName, refreshTrigger }: { userName: string, fullName?: string, refreshTrigger?: number }) {
   const { t } = useLanguage();
@@ -93,7 +94,8 @@ export default function CalendarAndExport({ userName, fullName, refreshTrigger }
       if (res.ok) {
         fetchEntries();
       } else {
-        alert("Fehler beim Löschen");
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Fehler beim Löschen");
       }
     }
   };
@@ -112,7 +114,8 @@ export default function CalendarAndExport({ userName, fullName, refreshTrigger }
       setEditingId(null);
       fetchEntries();
     } else {
-      alert("Fehler beim Speichern");
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Fehler beim Speichern");
     }
   };
 
@@ -280,6 +283,7 @@ export default function CalendarAndExport({ userName, fullName, refreshTrigger }
           {t('exportPdf')}
         </button>
       </div>
+      <p className="text-xs text-gray-500 mb-4">{t('weekEditHint')}</p>
 
       {/* Zeitkonto Info Banner */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-3.5 rounded-xl mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
@@ -433,10 +437,14 @@ export default function CalendarAndExport({ userName, fullName, refreshTrigger }
                     </div>
                   </td>
                   <td className="p-3">
-                    <div className="flex gap-1.5 items-center">
-                      <button onClick={() => handleEditClick(entry)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-1 rounded text-xs font-semibold transition">{t('edit')}</button>
-                      <button onClick={() => handleDeleteClick(entry.id)} className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded text-xs font-semibold transition">{t('delete')}</button>
-                    </div>
+                    {isDateInCurrentWorkWeek(entry.date) ? (
+                      <div className="flex gap-1.5 items-center">
+                        <button onClick={() => handleEditClick(entry)} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2.5 py-1 rounded text-xs font-semibold transition">{t('edit')}</button>
+                        <button onClick={() => handleDeleteClick(entry.id)} className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded text-xs font-semibold transition">{t('delete')}</button>
+                      </div>
+                    ) : (
+                      <span className="inline-block bg-gray-100 text-gray-500 px-2.5 py-1 rounded text-xs font-semibold">{t('weekLocked')}</span>
+                    )}
                   </td>
                 </tr>
               );
