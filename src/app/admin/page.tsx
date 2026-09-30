@@ -7,6 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculateZeitkonto } from "@/lib/zeitkonto";
+import { workerDisplayName } from "@/lib/displayName";
 import { AQUACON_LOGO_BASE64 } from "@/lib/logoBase64";
 
 export default function AdminDashboard() {
@@ -16,7 +17,12 @@ export default function AdminDashboard() {
 
   const [users, setUsers] = useState<any[]>([]);
   const [newUsername, setNewUsername] = useState("");
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [workerEntryDate, setWorkerEntryDate] = useState("");
   
@@ -77,11 +83,20 @@ export default function AdminDashboard() {
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: newUsername, password: newPassword, annualLeaveDays, entryDate: workerEntryDate || null })
+      body: JSON.stringify({
+        username: newUsername,
+        firstName: newFirstName,
+        lastName: newLastName,
+        password: newPassword,
+        annualLeaveDays,
+        entryDate: workerEntryDate || null,
+      })
     });
 
     if (res.ok) {
       setNewUsername("");
+      setNewFirstName("");
+      setNewLastName("");
       setNewPassword("");
       setAnnualLeaveDays("30");
       setWorkerEntryDate("");
@@ -91,6 +106,30 @@ export default function AdminDashboard() {
       const err = await res.json();
       alert(err.error);
     }
+  };
+
+  const startNameEdit = (user: any) => {
+    setEditingNameId(user.id);
+    setEditFirstName(user.firstName || "");
+    setEditLastName(user.lastName || "");
+  };
+
+  const saveWorkerName = async (userId: string) => {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ firstName: editFirstName, lastName: editLastName }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || "Fehler beim Speichern");
+      return;
+    }
+    const firstName = editFirstName.trim();
+    const lastName = editLastName.trim();
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, firstName, lastName } : u)));
+    setSelectedUser((prev: any) => (prev?.id === userId ? { ...prev, firstName, lastName } : prev));
+    setEditingNameId(null);
   };
 
   const handleLeaveAction = async (id: number, newStatus: string) => {
@@ -359,7 +398,7 @@ export default function AdminDashboard() {
     
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
-    doc.text(`Mitarbeiter: ${selectedUser.username}`, 14, 28);
+    doc.text(`Mitarbeiter: ${workerDisplayName(selectedUser)}`, 14, 28);
     const currentDate = new Date().toLocaleDateString('de-DE');
     doc.text(`Monat: ${formatMonthLabel(adminSelectedMonth)}  |  Erstelldatum: ${currentDate}`, 14, 35);
     doc.setTextColor(0, 0, 0);
@@ -578,6 +617,26 @@ export default function AdminDashboard() {
               <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-900">{t('newWorker')}</h2>
               <form onSubmit={handleCreateUser} className="flex flex-col gap-4">
                 <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t('firstName')}</label>
+                  <input
+                    type="text"
+                    value={newFirstName}
+                    onChange={e => setNewFirstName(e.target.value)}
+                    className="border border-gray-300 w-full p-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t('lastName')}</label>
+                  <input
+                    type="text"
+                    value={newLastName}
+                    onChange={e => setNewLastName(e.target.value)}
+                    className="border border-gray-300 w-full p-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">{t('username')}</label>
                   <input 
                     type="text" 
@@ -692,15 +751,22 @@ export default function AdminDashboard() {
               <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-900">{t('workerList')}</h2>
               <ul className="space-y-3">
                 {users.map(u => (
-                  <li key={u.id} className="border-b border-gray-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <li key={u.id} className="border-b border-gray-100 pb-3 flex flex-col gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex flex-col">
                       <span className="font-semibold text-base sm:text-lg text-gray-900">{u.username}</span>
-                      <span className="text-xs text-gray-500 font-mono">
-                        Passwort verschlüsselt (bei Bedarf neu vergeben)
+                      <span className="text-xs text-gray-600">
+                        {workerDisplayName(u) !== u.username ? workerDisplayName(u) : t('firstName') + " / " + t('lastName')}
                       </span>
                     </div>
                     {u.role !== 'ADMIN' && (
                       <div className="flex flex-wrap gap-1.5 mt-1 sm:mt-0">
+                        <button
+                          onClick={() => startNameEdit(u)}
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-lg text-xs font-semibold transition"
+                        >
+                          {t('edit')}
+                        </button>
                         <button 
                           onClick={() => viewUserEntries(u)}
                           className="bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 px-2.5 py-1 rounded-lg text-xs font-semibold transition"
@@ -718,6 +784,32 @@ export default function AdminDashboard() {
                           className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg text-xs font-semibold transition"
                         >
                           {t('delete')}
+                        </button>
+                      </div>
+                    )}
+                    </div>
+                    {editingNameId === u.id && (
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
+                        <input
+                          type="text"
+                          value={editFirstName}
+                          onChange={e => setEditFirstName(e.target.value)}
+                          placeholder={t('firstName')}
+                          className="border border-gray-300 flex-1 p-2 rounded-lg text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={editLastName}
+                          onChange={e => setEditLastName(e.target.value)}
+                          placeholder={t('lastName')}
+                          className="border border-gray-300 flex-1 p-2 rounded-lg text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveWorkerName(u.id)}
+                          className="bg-blue-600 text-white px-3 py-2 rounded-lg text-xs font-bold"
+                        >
+                          {t('save')}
                         </button>
                       </div>
                     )}

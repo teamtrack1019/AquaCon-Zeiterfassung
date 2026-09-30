@@ -6,6 +6,8 @@ export interface UserRecord {
   id: string;
   username: string;
   usernameLower: string;
+  firstName: string;
+  lastName: string;
   password: string;
   role: UserRole;
   annualLeaveDays: number;
@@ -62,6 +64,8 @@ function toUser(id: string, data: DocData): UserRecord {
     id,
     username: data.username,
     usernameLower: data.usernameLower || String(data.username || "").toLowerCase(),
+    firstName: data.firstName || "",
+    lastName: data.lastName || "",
     password: data.password,
     role: data.role,
     annualLeaveDays: data.annualLeaveDays ?? 30,
@@ -120,6 +124,8 @@ export async function findUserById(id: string): Promise<UserRecord | null> {
 
 export async function createUser(input: {
   username: string;
+  firstName?: string;
+  lastName?: string;
   password: string;
   role: UserRole;
   annualLeaveDays?: number;
@@ -134,6 +140,8 @@ export async function createUser(input: {
   const data = {
     username: input.username,
     usernameLower: input.username.toLowerCase(),
+    firstName: input.firstName?.trim() || "",
+    lastName: input.lastName?.trim() || "",
     password: input.password,
     role: input.role,
     annualLeaveDays: input.annualLeaveDays ?? 30,
@@ -152,6 +160,8 @@ export async function updateUser(
     Pick<
       UserRecord,
       | "password"
+      | "firstName"
+      | "lastName"
       | "annualLeaveDays"
       | "carriedOverLeaveDays"
       | "lastCarryOverYear"

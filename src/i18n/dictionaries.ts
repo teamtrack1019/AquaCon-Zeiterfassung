@@ -2,6 +2,8 @@ export const dictionaries = {
   de: {
     login: "Anmelden",
     username: "Benutzername",
+    firstName: "Vorname",
+    lastName: "Nachname",
     password: "Passwort",
     start: "Start",
     stop: "Stopp",
@@ -103,6 +105,8 @@ export const dictionaries = {
   ru: {
     login: "Войти",
     username: "Имя пользователя",
+    firstName: "Имя",
+    lastName: "Фамилия",
     password: "Пароль",
     start: "Старт",
     stop: "Стоп",
